@@ -1,4 +1,4 @@
-# Disaster Management System
+# Disaster Management Syste
 
 A full-stack disaster response platform for monitoring incidents, sending alerts, and coordinating emergency information across an admin dashboard, backend API, and mobile app.
 
