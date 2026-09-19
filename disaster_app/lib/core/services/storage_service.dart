@@ -6,11 +6,23 @@ import '../models/alert_model.dart';
 class StorageService {
   static const String _keyLanguage = 'pref_language';
   static const String _keyUserId = 'user_id';
+  static const String _keyDistrict = 'pref_district';
   static const String _keyBackendUrl = 'backend_url';
   static const String _keyOfflineGuides = 'offline_guides';
   static const String _keyLastAlert = 'last_active_alert';
 
   static Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
+
+  // District / Administrative Zone
+  static Future<String> getDistrict() async {
+    final prefs = await _prefs;
+    return prefs.getString(_keyDistrict) ?? 'Varanasi';
+  }
+
+  static Future<void> setDistrict(String district) async {
+    final prefs = await _prefs;
+    await prefs.setString(_keyDistrict, district);
+  }
 
   // Language
   static Future<String> getLanguage() async {

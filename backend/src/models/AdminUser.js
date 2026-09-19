@@ -40,9 +40,20 @@ const adminUserSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ['super_admin', 'admin', 'viewer'],
+      enum: ['super_admin', 'admin', 'sdma_operator', 'researcher', 'viewer'],
       default: 'admin',
     },
+
+    // ── Regional assignment for State / District Authorities ───────────────────
+    assignedState: {
+      type: String,
+      trim: true,
+      default: 'Uttar Pradesh',
+    },
+    assignedDistricts: [{
+      type: String,
+      trim: true,
+    }],
 
     // ── Account health ────────────────────────────────────────────────────────
     isActive: { type: Boolean, default: true },
@@ -62,6 +73,7 @@ const adminUserSchema = new mongoose.Schema(
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
 adminUserSchema.index({ role: 1, isActive: 1 });
+adminUserSchema.index({ assignedState: 1, role: 1 });
 
 // ── Password hashing hook ─────────────────────────────────────────────────────
 adminUserSchema.pre('save', async function (next) {

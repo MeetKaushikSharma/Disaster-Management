@@ -20,6 +20,17 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _urlController = TextEditingController();
   String _currentLang = 'en';
+  String _selectedDistrict = 'Varanasi';
+
+  static const List<Map<String, String>> _districts = [
+    {'code': 'Varanasi', 'name': 'Varanasi (Ganga Basin, UP)'},
+    {'code': 'Gorakhpur', 'name': 'Gorakhpur (Rapti Basin, UP)'},
+    {'code': 'Prayagraj', 'name': 'Prayagraj (Sangam Basin, UP)'},
+    {'code': 'Lucknow', 'name': 'Lucknow (Gomti Basin, UP)'},
+    {'code': 'Ayodhya', 'name': 'Ayodhya (Saryu Basin, UP)'},
+    {'code': 'Patna', 'name': 'Patna (Bihar / Ganga Basin)'},
+    {'code': 'All', 'name': 'All Zones (National Broadcast)'},
+  ];
 
   @override
   void initState() {
@@ -30,8 +41,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final url = await StorageService.getBackendUrl();
+    final district = await StorageService.getDistrict();
     _urlController.text = url;
+    _selectedDistrict = district;
     setState(() {});
+  }
+
+  Future<void> _saveDistrict(String district) async {
+    await StorageService.setDistrict(district);
+    setState(() => _selectedDistrict = district);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Monitoring district set to $district.')),
+      );
+    }
   }
 
   Future<void> _saveUrl() async {
@@ -99,6 +122,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (newCode != null && newCode != _currentLang) {
                       setState(() => _currentLang = newCode);
                       widget.onLanguageChanged(newCode);
+                    }
+                  },
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
+            // District & Regional Monitoring Section
+            const Text(
+              'EARLY WARNING ZONE / DISTRICT',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: AppTheme.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Filter localized IMD/CWC hydrometeorological alerts and AI anomaly detections to your regional cluster.',
+              style: TextStyle(fontSize: 12, color: AppTheme.grey600, height: 1.4),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: AppTheme.white,
+                border: Border.all(color: AppTheme.black, width: 1.5),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _districts.any((d) => d['code'] == _selectedDistrict) ? _selectedDistrict : 'Varanasi',
+                  isExpanded: true,
+                  icon: const Icon(Icons.location_city, color: AppTheme.black),
+                  items: _districts.map((item) {
+                    return DropdownMenuItem<String>(
+                      value: item['code'],
+                      child: Text(
+                        item['name']!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.black,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      _saveDistrict(val);
                     }
                   },
                 ),

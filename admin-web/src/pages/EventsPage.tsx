@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { AlertTriangle, PlusCircle, RefreshCw, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getEvents, retractEvent, triggerAlert } from '../api/services';
+import { getEvents, retractEvent, triggerAlert, approveEvent, rejectEvent } from '../api/services';
 import type { DisasterEvent } from '../types';
 
 const STATUS_TABS: { label: string; value: string }[] = [
-  { label: 'Active',     value: 'active' },
-  { label: 'Retracted',  value: 'retracted' },
-  { label: 'Cancelled',  value: 'cancelled' },
-  { label: 'All',        value: 'all' },
+  { label: 'Published / Live',  value: 'active' },
+  { label: 'Pending SDMA Approval', value: 'pending_approval' },
+  { label: 'Drafts',            value: 'draft' },
+  { label: 'Retracted',         value: 'retracted' },
+  { label: 'All',               value: 'all' },
 ];
 
 export default function EventsPage() {
@@ -42,7 +43,35 @@ export default function EventsPage() {
 
   const toast = (msg: string) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 3000);
+    setTimeout(() => setToastMsg(''), 3500);
+  };
+
+  const handleApprove = async (id: string) => {
+    setActionId(id);
+    try {
+      await approveEvent(id, 'Approved by SDMA Operator');
+      toast('✓ Event approved & published! Push alerts dispatched to citizens.');
+      loadEvents();
+    } catch (err: any) {
+      toast(err.response?.data?.message || 'Approval failed');
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    const reason = window.prompt('Enter rejection feedback for researcher:');
+    if (!reason) return;
+    setActionId(id);
+    try {
+      await rejectEvent(id, reason);
+      toast('Event returned to draft status.');
+      loadEvents();
+    } catch (err: any) {
+      toast(err.response?.data?.message || 'Rejection failed');
+    } finally {
+      setActionId(null);
+    }
   };
 
   const handleTrigger = async (id: string) => {
@@ -147,7 +176,27 @@ export default function EventsPage() {
                       </td>
                       <td>
                         <div className="action-row">
-                          {ev.status === 'active' && (
+                          {ev.status === 'pending_approval' && (
+                            <>
+                              <button
+                                className="btn btn-sm btn-primary"
+                                onClick={() => handleApprove(ev._id)}
+                                disabled={actionId === ev._id}
+                                style={{ fontSize: 11, padding: '4px 8px' }}
+                              >
+                                {actionId === ev._id ? 'Approving…' : 'Approve & Dispatch'}
+                              </button>
+                              <button
+                                className="btn btn-sm btn-secondary"
+                                onClick={() => handleReject(ev._id)}
+                                disabled={actionId === ev._id}
+                                style={{ fontSize: 11, padding: '4px 8px' }}
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          {(ev.status === 'active' || ev.status === 'published') && (
                             <>
                               <button
                                 id={`btn-trigger-${ev._id}`}

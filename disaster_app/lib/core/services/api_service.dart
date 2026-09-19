@@ -24,16 +24,17 @@ class ApiService {
   }) async {
     try {
       final baseUrl = await _getBaseUrl();
-      // Correct endpoint: /api/users/register (POST)
+      final payload = <String, dynamic>{
+        'phone': phone,
+        'name': name,
+        'preferredLanguage': language,
+      };
+      if (fcmToken != null) payload['fcmToken'] = fcmToken;
+
       final res = await http.post(
         Uri.parse('$baseUrl/api/users/register'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'phone': phone,
-          'name': name,
-          'preferredLanguage': language,
-          if (fcmToken != null) 'fcmToken': fcmToken,
-        }),
+        body: json.encode(payload),
       ).timeout(const Duration(seconds: 8));
 
       if (res.statusCode == 200 || res.statusCode == 201) {
@@ -136,5 +137,44 @@ class ApiService {
     // Fallback to local offline cache
     final cached = await StorageService.getGuides();
     return cached;
+  }
+
+  // Submit Citizen Safety Check-In ("safe", "need_help", "family_safe")
+  Future<bool> submitCitizenCheckIn({
+    required String status,
+    required double lng,
+    required double lat,
+    String? message,
+    String? district,
+    String? eventId,
+    int peopleCount = 1,
+  }) async {
+    try {
+      final baseUrl = await _getBaseUrl();
+      final userId = await StorageService.getUserId();
+      if (userId == null) return false;
+
+      final payload = <String, dynamic>{
+        'userId': userId,
+        'status': status,
+        'coordinates': [lng, lat],
+        'district': district ?? 'Varanasi',
+        'state': 'Uttar Pradesh',
+        'peopleCount': peopleCount,
+      };
+      if (eventId != null) payload['eventId'] = eventId;
+      if (message != null) payload['message'] = message;
+
+      final res = await http.post(
+        Uri.parse('$baseUrl/api/citizens/check-in'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(payload),
+      ).timeout(const Duration(seconds: 8));
+
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (e) {
+      debugPrint('Check-in error: $e');
+      return false;
+    }
   }
 }

@@ -1,12 +1,20 @@
 // ── Shared type definitions ───────────────────────────────────────────────────
 
-export type Severity = 'Low' | 'Medium' | 'High' | 'Critical';
+export type Severity =
+  | 'Low' | 'Medium' | 'High' | 'Critical'
+  | 'Advisory' | 'Watch' | 'Warning' | 'Emergency';
+
 export type DisasterType =
-  | 'Flood' | 'Earthquake' | 'Cyclone' | 'Landslide'
-  | 'Fire' | 'Tsunami' | 'Drought' | 'Heatwave'
+  | 'Flood' | 'FlashFlood' | 'HeavyRainfall' | 'UrbanWaterlogging'
+  | 'Earthquake' | 'Cyclone' | 'Landslide'
+  | 'Fire' | 'Tsunami' | 'Drought' | 'Heatwave' | 'Coldwave'
   | 'ChemicalSpill' | 'Other';
+
 export type ZoneType = 'polygon' | 'radius';
-export type EventStatus = 'active' | 'retracted' | 'expired' | 'cancelled';
+
+export type EventStatus =
+  | 'active' | 'published' | 'pending_approval' | 'draft'
+  | 'approved' | 'retracted' | 'expired' | 'cancelled';
 
 export interface GeoPoint {
   type: 'Point';
@@ -37,12 +45,25 @@ export interface SafetyGuide {
   updatedAt: string;
 }
 
+export interface ApprovalWorkflow {
+  submittedBy?: { _id: string; name: string; email: string };
+  submittedAt?: string;
+  approvedBy?: { _id: string; name: string; email: string };
+  approvedAt?: string;
+  reviewNotes?: string;
+}
+
 export interface DisasterEvent {
   _id: string;
   title: string;
   type: DisasterType;
   severity: Severity;
   description?: string;
+  state?: string;
+  district?: string;
+  translations?: {
+    hi?: { title: string; description: string };
+  };
   zoneType: ZoneType;
   polygon?: GeoPolygon;
   centre?: GeoPoint;
@@ -50,6 +71,8 @@ export interface DisasterEvent {
   bufferRadiusKm: number;
   safetyGuideId?: string | SafetyGuide;
   status: EventStatus;
+  approvalWorkflow?: ApprovalWorkflow;
+  capIdentifier?: string;
   expiresAt?: string;
   retractedAt?: string;
   correctionMessage?: string;
@@ -76,7 +99,9 @@ export interface AdminUser {
   id: string;
   name: string;
   email: string;
-  role: 'super_admin' | 'admin' | 'viewer';
+  role: 'super_admin' | 'admin' | 'sdma_operator' | 'researcher' | 'viewer';
+  assignedState?: string;
+  assignedDistricts?: string[];
 }
 
 export interface PaginatedResponse<T> {
@@ -92,3 +117,87 @@ export interface AlertStats {
   bySeverity: { _id: Severity; count: number; acknowledged: number }[];
   last24hAlerts: number;
 }
+
+// ── AI Anomaly & Early Warning Types ──────────────────────────────────────────
+
+export interface AnomalyFeature {
+  indicator: string;
+  currentValue: number;
+  baselineMean: number;
+  baselineStd: number;
+  deviationScore: number;
+  unit: string;
+}
+
+export interface AiAlert {
+  _id: string;
+  state: string;
+  district: string;
+  hazardType: DisasterType;
+  score: number;
+  threshold: number;
+  recommendedSeverity: Severity;
+  anomalyFeatures: AnomalyFeature[];
+  explanation: string;
+  suggestedActions?: string[];
+  suggestedCentre?: [number, number];
+  suggestedRadiusKm?: number;
+  status: 'pending_review' | 'approved_into_event' | 'dismissed' | 'escalated';
+  reviewedBy?: { _id: string; name: string; email: string };
+  reviewedAt?: string;
+  reviewNotes?: string;
+  linkedEventId?: { _id: string; title: string; status: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HazardReading {
+  _id: string;
+  timestamp: string;
+  state: string;
+  district: string;
+  stationId?: string;
+  stationName?: string;
+  indicator: string;
+  value: number;
+  unit: string;
+  source: string;
+  warningLevel?: number;
+  dangerLevel?: number;
+  isAnomaly: boolean;
+  anomalyScore?: number;
+}
+
+export interface DistrictSummary {
+  district: string;
+  state: string;
+  rainfall?: { value: number; unit: string; timestamp: string; isAnomaly: boolean } | null;
+  riverLevel?: { value: number; unit: string; warningLevel?: number; dangerLevel?: number; timestamp: string; isAnomaly: boolean } | null;
+  temperature?: { value: number; unit: string; timestamp: string; isAnomaly: boolean } | null;
+}
+
+// ── Situational Awareness & Citizen Check-In Types ───────────────────────────
+
+export interface CitizenCheckIn {
+  _id: string;
+  userId: string;
+  phone?: string;
+  citizenName: string;
+  status: 'safe' | 'need_help' | 'family_safe';
+  location: { type: 'Point'; coordinates: [number, number] };
+  district: string;
+  state: string;
+  eventId?: string;
+  message?: string;
+  peopleCount: number;
+  isAcknowledgedByResponders: boolean;
+  createdAt: string;
+}
+
+export interface SituationalAwarenessSummary {
+  safe: number;
+  need_help: number;
+  family_safe: number;
+  totalReports: number;
+}
+

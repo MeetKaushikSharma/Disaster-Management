@@ -13,12 +13,18 @@
 
 const mongoose = require('mongoose');
 
-// ── Severity tiers ────────────────────────────────────────────────────────────
-const SEVERITY_LEVELS = ['Low', 'Medium', 'High', 'Critical'];
+// ── Severity tiers (Supports both legacy and NDMA/IMD standard tiers) ─────────
+const SEVERITY_LEVELS = [
+  'Low', 'Medium', 'High', 'Critical',
+  'Advisory', 'Watch', 'Warning', 'Emergency',
+];
 
-// ── Disaster type vocabulary (extensible via SafetyGuide) ─────────────────────
+// ── Disaster type vocabulary (India NDMA / IMD Hazard Taxonomy) ───────────────
 const DISASTER_TYPES = [
   'Flood',
+  'FlashFlood',
+  'HeavyRainfall',
+  'UrbanWaterlogging',
   'Earthquake',
   'Cyclone',
   'Landslide',
@@ -26,8 +32,21 @@ const DISASTER_TYPES = [
   'Tsunami',
   'Drought',
   'Heatwave',
+  'Coldwave',
   'ChemicalSpill',
   'Other',
+];
+
+// ── Event lifecycle status ───────────────────────────────────────────────────
+const EVENT_STATUSES = [
+  'draft',
+  'pending_approval',
+  'approved',
+  'published',
+  'active',
+  'retracted',
+  'expired',
+  'cancelled',
 ];
 
 // ── Sub-schema: GeoJSON Point (centre for radius-type zones) ──────────────────
@@ -89,6 +108,27 @@ const disasterEventSchema = new mongoose.Schema(
       maxlength: [2000, 'Description must be ≤ 2000 characters'],
     },
 
+    // ── Regional / Administrative Targeting (India) ───────────────────────────
+    state: {
+      type: String,
+      trim: true,
+      default: 'Uttar Pradesh',
+    },
+
+    district: {
+      type: String,
+      trim: true,
+      default: 'Varanasi',
+    },
+
+    // ── Multi-language Content (Hindi & Regional) ─────────────────────────────
+    translations: {
+      hi: {
+        title: { type: String, trim: true },
+        description: { type: String, trim: true },
+      },
+    },
+
     // ── Zone definition ───────────────────────────────────────────────────────
     zoneType: {
       type: String,
@@ -121,11 +161,29 @@ const disasterEventSchema = new mongoose.Schema(
       ref: 'SafetyGuide',
     },
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    // ── Lifecycle & SDMA Approval Flow ────────────────────────────────────────
     status: {
       type: String,
-      enum: ['active', 'retracted', 'expired', 'cancelled'],
+      enum: EVENT_STATUSES,
       default: 'active',
+    },
+
+    approvalWorkflow: {
+      submittedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AdminUser',
+      },
+      submittedAt: Date,
+      approvedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AdminUser',
+      },
+      approvedAt: Date,
+      reviewNotes: {
+        type: String,
+        trim: true,
+        maxlength: 1000,
+      },
     },
 
     expiresAt: {
@@ -152,6 +210,24 @@ const disasterEventSchema = new mongoose.Schema(
       required: true,
     },
 
+    // ── OASIS CAP 1.2 Standards Metadata ─────────────────────────────────────
+    capIdentifier: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+    },
+    urgency: {
+      type: String,
+      enum: ['Immediate', 'Expected', 'Future', 'Past', 'Unknown'],
+      default: 'Expected',
+    },
+    certainty: {
+      type: String,
+      enum: ['Observed', 'Likely', 'Possible', 'Unlikely', 'Unknown'],
+      default: 'Likely',
+    },
+
     // ── Notification tracking ─────────────────────────────────────────────────
     alertsSentCount: { type: Number, default: 0 },
     lastAlertSentAt: Date,
@@ -166,6 +242,7 @@ const disasterEventSchema = new mongoose.Schema(
 // ── Indexes ───────────────────────────────────────────────────────────────────
 disasterEventSchema.index({ status: 1, createdAt: -1 });
 disasterEventSchema.index({ type: 1, severity: 1 });
+disasterEventSchema.index({ state: 1, district: 1, status: 1 });
 disasterEventSchema.index({ 'centre': '2dsphere' }); // geospatial queries on radius events
 
 // ── Validation: ensure the correct zone fields are present ────────────────────
@@ -187,9 +264,13 @@ disasterEventSchema.pre('validate', function (next) {
 
 // ── Virtual: is the event currently active? ───────────────────────────────────
 disasterEventSchema.virtual('isLive').get(function () {
-  return this.status === 'active' && (!this.expiresAt || this.expiresAt > new Date());
+  return (
+    (this.status === 'active' || this.status === 'published') &&
+    (!this.expiresAt || this.expiresAt > new Date())
+  );
 });
 
 module.exports = mongoose.model('DisasterEvent', disasterEventSchema);
 module.exports.SEVERITY_LEVELS = SEVERITY_LEVELS;
 module.exports.DISASTER_TYPES = DISASTER_TYPES;
+module.exports.EVENT_STATUSES = EVENT_STATUSES;

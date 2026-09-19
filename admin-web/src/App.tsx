@@ -7,6 +7,8 @@ import EventsPage from './pages/EventsPage';
 import NewEventPage from './pages/NewEventPage';
 import GuidesPage from './pages/GuidesPage';
 import LogsPage from './pages/LogsPage';
+import AiAnomalyHubPage from './pages/AiAnomalyHubPage';
+import SituationalAwarenessPage from './pages/SituationalAwarenessPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
@@ -28,6 +30,8 @@ export default function App() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="ai-hub" element={<AiAnomalyHubPage />} />
+        <Route path="situational-awareness" element={<SituationalAwarenessPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="events/new" element={<NewEventPage />} />
         <Route path="guides" element={<GuidesPage />} />

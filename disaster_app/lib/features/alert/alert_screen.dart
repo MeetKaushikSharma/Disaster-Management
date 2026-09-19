@@ -27,6 +27,36 @@ class _AlertScreenState extends State<AlertScreen> {
   double? _distanceKm;
   String? _userId;
   Timer? _pollingTimer;
+  String? _checkInStatus;
+  bool _isSubmittingCheckIn = false;
+
+  Future<void> _handleCheckIn(String status) async {
+    setState(() => _isSubmittingCheckIn = true);
+    final ok = await ApiService().submitCitizenCheckIn(
+      status: status,
+      lng: _userLng,
+      lat: _userLat,
+      district: 'Varanasi',
+      eventId: _activeAlert?.id,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isSubmittingCheckIn = false;
+        if (ok) _checkInStatus = status;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(status == 'safe'
+            ? '✓ Status recorded: You are marked SAFE with local authorities.'
+            : '⚠️ SOS Registered: Emergency rescue teams notified of your coordinates.'),
+          backgroundColor: status == 'safe' ? Colors.green.shade800 : Colors.red.shade800,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -210,6 +240,88 @@ class _AlertScreenState extends State<AlertScreen> {
                   ] else ...[
                     _buildNormalStatusCard(t),
                   ],
+
+                  const SizedBox(height: 20),
+
+                  // ── Citizen Safety Check-In Action Bar ────────────────────
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.shield_outlined, size: 16, color: Colors.blue.shade800),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'CITIZEN SITUATIONAL RESPONSE',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                            ),
+                            const Spacer(),
+                            if (_checkInStatus != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: _checkInStatus == 'safe' ? Colors.green.shade100 : Colors.red.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  _checkInStatus == 'safe' ? 'CONFIRMED SAFE' : 'HELP REQUESTED',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: _checkInStatus == 'safe' ? Colors.green.shade900 : Colors.red.shade900,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Broadcast your immediate status to district authorities and emergency response teams with your current GPS location.',
+                          style: TextStyle(fontSize: 12, color: Colors.black87, height: 1.3),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF059669),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                ),
+                                icon: const Icon(Icons.check_circle_outline, size: 16),
+                                label: const Text('I AM SAFE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                                onPressed: _isSubmittingCheckIn ? null : () => _handleCheckIn('safe'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFDC2626),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                ),
+                                icon: const Icon(Icons.warning_amber_rounded, size: 16),
+                                label: const Text('NEED HELP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                                onPressed: _isSubmittingCheckIn ? null : () => _handleCheckIn('need_help'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
 
                   const SizedBox(height: 24),
 

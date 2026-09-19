@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>India Early Warning — Public Browser Alert Feed</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-red: #ef4444;
+      --accent-amber: #f59e0b;
+      --accent-green: #10b981;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      max-width: 780px;
+      width: 100%;
+    }
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #38bdf8;
+      color: #0f172a;
+    }
+    .btn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .alert-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+    .alert-card.warning { border-left: 4px solid var(--accent-red); }
+    .alert-card.watch { border-left: 4px solid var(--accent-amber); }
+    .alert-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .alert-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .alert-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .alert-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #cbd5e1;
+    }
+    .instruction-box {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>🇮🇳 SACHET / CAP 1.2 Web Dissemination Feed</h1>
+        <div style="font-size: 13px; color: var(--text-muted);">
+          Standardized OASIS CAP v1.2 Feed Reader &amp; Browser Notification Daemon
+        </div>
+      </div>
+      <div>
+        <button id="btn-notify" class="btn">Enable Web Notifications</button>
+      </div>
+    </div>
+
+    <div id="alerts-container">
+      <div style="color: var(--text-muted); font-size: 13px;">Polling CAP 1.2 Feed from Backend...</div>
+    </div>
+  </div>
+
+  <script>
+    const container = document.getElementById('alerts-container');
+    const notifyBtn = document.getElementById('btn-notify');
+    const seenAlerts = new Set();
+
+    async function requestPermission() {
+      if (!("Notification" in window)) {
+        alert("This browser does not support desktop notifications.");
+        return;
+      }
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        notifyBtn.textContent = '✓ Notifications Active';
+        notifyBtn.style.background = '#059669';
+      }
+    }
+
+    notifyBtn.addEventListener('click', requestPermission);
+
+    async function fetchCapFeed() {
+      try {
+        const res = await fetch('http://localhost:5000/api/feeds/cap.json');
+        const data = await res.json();
+        renderAlerts(data.alerts || []);
+      } catch (err) {
+        container.innerHTML = `
+          <div class="alert-card" style="border-color: #ef4444;">
+            <strong style="color: #ef4444;">Could not reach API feed at http://localhost:5000/api/feeds/cap.json</strong>
+            <p style="font-size: 12px; color: #94a3b8; margin: 6px 0 0 0;">Ensure the backend service is running.</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderAlerts(alerts) {
+      if (alerts.length === 0) {
+        container.innerHTML = '<div class="alert-card">No active disaster alerts in the national CAP feed.</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      alerts.forEach(al => {
+        const info = al.info[0];
+        const id = al.identifier;
+        const sevClass = info.severity.toLowerCase() === 'warning' || info.severity.toLowerCase() === 'critical' ? 'warning' : 'watch';
+
+        // Trigger browser notification for fresh alerts
+        if (!seenAlerts.has(id) && Notification.permission === 'granted') {
+          seenAlerts.add(id);
+          new Notification(`🚨 [${info.severity}] ${info.headline}`, {
+            body: info.description || info.instruction,
+            icon: 'https://cdn-icons-png.flaticon.com/512/564/564619.png',
+          });
+        }
+
+        const card = document.createElement('div');
+        card.className = `alert-card ${sevClass}`;
+        card.innerHTML = `
+          <div class="alert-top">
+            <span class="badge" style="background: ${info.severity === 'Warning' ? '#ef4444' : '#f59e0b'}; color: white;">
+              ${info.severity.toUpperCase()} • ${info.event}
+            </span>
+            <span style="font-size: 11px; color: var(--text-muted);">${new Date(al.sent).toLocaleString()}</span>
+          </div>
+          <h2 class="alert-title">${info.headline}</h2>
+          <div class="alert-meta">
+            Target Area: <strong>${info.area?.[0]?.areaDesc || 'Nationwide'}</strong> • Urgency: <strong>${info.urgency}</strong> • Protocol: <strong>CAP-v1.2</strong>
+          </div>
+          <div class="alert-desc">${info.description}</div>
+          ${info.instruction ? `<div class="instruction-box"><strong>Directive:</strong> ${info.instruction}</div>` : ''}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    fetchCapFeed();
+    setInterval(fetchCapFeed, 10000);
+  </script>
+</body>
+</html>

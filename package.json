@@ -1,0 +1,24 @@
+{
+  "name": "india-disaster-management-system",
+  "version": "1.0.0",
+  "description": "India Disaster Management & AI Early Warning System",
+  "scripts": {
+    "start": "npx concurrently --kill-others -n \"BACKEND,AI-ENGINE,ADMIN-WEB\" -c \"cyan,yellow,green\" \"npm run dev --prefix backend\" \"python ai-service/main.py\" \"npm run dev --prefix admin-web\"",
+    "dev": "npm start",
+    "backend": "npm run dev --prefix backend",
+    "ai": "python ai-service/main.py",
+    "web": "npm run dev --prefix admin-web",
+    "app": "cd disaster_app && flutter run",
+    "test:backend": "npm test --prefix backend"
+  },
+  "keywords": [
+    "disaster-management",
+    "ai-early-warning",
+    "imd",
+    "cwc",
+    "ndma",
+    "cap"
+  ],
+  "author": "",
+  "license": "ISC"
+}

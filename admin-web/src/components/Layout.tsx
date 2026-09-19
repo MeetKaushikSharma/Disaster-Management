@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, AlertTriangle, BookOpen, FileText,
-  Shield, LogOut, PlusCircle
+  Shield, LogOut, PlusCircle, BrainCircuit, Radio
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -24,7 +24,7 @@ export default function Layout() {
           </div>
           <div>
             <div className="sidebar-logo-text">DisasterMgmt</div>
-            <div className="sidebar-logo-sub">Admin Portal</div>
+            <div className="sidebar-logo-sub">India SDMA Portal</div>
           </div>
         </div>
 
@@ -35,10 +35,22 @@ export default function Layout() {
               <LayoutDashboard size={16} />
               Dashboard
             </NavLink>
+            <NavLink to="/situational-awareness" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+              <Radio size={16} />
+              Citizen Awareness
+            </NavLink>
           </div>
 
           <div className="sidebar-section">
-            <div className="sidebar-section-label">Alerts</div>
+            <div className="sidebar-section-label">AI & Early Warning</div>
+            <NavLink to="/ai-hub" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+              <BrainCircuit size={16} />
+              AI Anomaly Hub
+            </NavLink>
+          </div>
+
+          <div className="sidebar-section">
+            <div className="sidebar-section-label">Alert Management</div>
             <NavLink to="/events" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
               <AlertTriangle size={16} />
               Disaster Events
@@ -50,7 +62,7 @@ export default function Layout() {
           </div>
 
           <div className="sidebar-section">
-            <div className="sidebar-section-label">Content</div>
+            <div className="sidebar-section-label">Content & Audit</div>
             <NavLink to="/guides" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
               <BookOpen size={16} />
               Safety Guides

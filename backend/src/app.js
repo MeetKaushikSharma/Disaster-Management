@@ -23,6 +23,11 @@ const eventRoutes = require('./routes/events');
 const userRoutes = require('./routes/users');
 const guideRoutes = require('./routes/guides');
 const logRoutes = require('./routes/logs');
+const hazardReadingRoutes = require('./routes/hazardReadings');
+const officialWarningRoutes = require('./routes/officialWarnings');
+const aiAlertRoutes = require('./routes/aiAlerts');
+const citizenRoutes = require('./routes/citizens');
+const capFeedRoutes = require('./routes/capFeeds');
 
 const app = express();
 
@@ -67,7 +72,7 @@ const globalLimiter = rateLimit({
 app.use('/api', globalLimiter);
 
 // ── Public Flutter endpoints: more lenient limiter (2000 req / 15 min) ─────────
-// These handle: user registration, GPS heartbeat, FCM token updates, guide fetching
+// These handle: user registration, GPS heartbeat, FCM token updates, guide fetching, check-ins
 const mobileLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 2000,
@@ -76,6 +81,7 @@ const mobileLimiter = rateLimit({
 });
 app.use('/api/users/register', mobileLimiter);
 app.use('/api/guides', mobileLimiter);
+app.use('/api/citizens/check-in', mobileLimiter);
 
 // ── Health check (public) ─────────────────────────────────────────────────────
 app.get('/health', (req, res) =>
@@ -88,6 +94,11 @@ app.use('/api/events', eventRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/guides', guideRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/hazard-readings', hazardReadingRoutes);
+app.use('/api/official-warnings', officialWarningRoutes);
+app.use('/api/ai-alerts', aiAlertRoutes);
+app.use('/api/citizens', citizenRoutes);
+app.use('/api/feeds', capFeedRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((req, res) => {
