@@ -252,10 +252,10 @@ The project includes Jest tests for backend behavior.
 
 ## Contributors
 
-| Contributor Name | GitHub Username | Role / Contribution |
-| --- | --- | --- |
-| Harsh Anand | HarshAnand143 | - Designed and implemented the admin web login page UI. <br> - Worked on the admin web frontend. <br> - Prepared SRS documentation at each project level. |
-| KAUSHIK SHARMA | MeetKaushikSharma | - Completed the remaining project development work. <br> - Contributed to core implementation across the project. <br> - handled major remaining project tasks beyond the admin login UI. |
+| Contributor Name | Role / Contribution |
+| --- | --- |
+| <a href="https://github.com/HarshAnand143">Harsh Anand</a> | - Designed and implemented the admin web login page UI. <br> - Worked on the admin web frontend. <br> - Prepared SRS documentation at each project level. |
+| <a href="https://github.com/MeetKaushikSharma">Kaushik Sharma</a> | - Completed the remaining project development work. <br> - Contributed to core implementation across the project. <br> - handled major remaining project tasks beyond the admin login UI. |
 
 ## License
 
