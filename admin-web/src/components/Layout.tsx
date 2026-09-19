@@ -1,11 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, AlertTriangle, BookOpen, FileText,
-<<<<<<< HEAD
-  Shield, LogOut, PlusCircle, BrainCircuit, Radio
-=======
-  LogOut, PlusCircle
->>>>>>> 6a84ac9cd2e0664257eefee8c10af8371569bfd5
+  LogOut, PlusCircle, BrainCircuit, Radio
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -24,18 +20,17 @@ export default function Layout() {
       <aside className="sidebar">
         <div className="sidebar-logo">
           <img
-            src="/raksasetu-mark.svg"
+            src="/RakṣāSetu.png"
             alt="RakṣāSetu logo"
             className="sidebar-logo-mark"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/raksasetu-mark.svg';
+            }}
           />
           <div>
-<<<<<<< HEAD
-            <div className="sidebar-logo-text">DisasterMgmt</div>
-            <div className="sidebar-logo-sub">India SDMA Portal</div>
-=======
             <div className="sidebar-logo-text">RakṣāSetu</div>
-            <div className="sidebar-logo-sub">Admin Portal</div>
->>>>>>> 6a84ac9cd2e0664257eefee8c10af8371569bfd5
+            <div className="sidebar-logo-sub">India SDMA Portal</div>
           </div>
         </div>
 
