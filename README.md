@@ -250,6 +250,13 @@ The project includes Jest tests for backend behavior.
 4. Start the mobile app when testing Android/iOS flows.
 5. Use the admin dashboard to create events and guides.
 
+## Contributors
+
+| Contributor Name | GitHub Username | Role / Contribution |
+| --- | --- | --- |
+| Harsh Anand | HarshAnand143 | - Designed and implemented the admin web login page UI. <br> - Worked on the admin web frontend. <br> - Prepared SRS documentation at each project level. |
+| KAUSHIK SHARMA | MeetKaushikSharma | - Completed the remaining project development work. <br> - Contributed to core implementation across the project. <br> - handled major remaining project tasks beyond the admin login UI. |
+
 ## License
 
 This project is currently intended for internal project use and is not published as a public package.
