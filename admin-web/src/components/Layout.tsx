@@ -1,12 +1,13 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
-<<<<<<< HEAD
-  LayoutDashboard, AlertTriangle, BookOpen, FileText,
-  LogOut, PlusCircle, BrainCircuit, Radio
-=======
-  LayoutDashboard, TriangleAlert, BookOpen, FileText,
-  LogOut, CirclePlus
->>>>>>> 1168dca (Initial secure commit)
+  LayoutDashboard,
+  AlertTriangle,
+  BookOpen,
+  FileText,
+  LogOut,
+  PlusCircle,
+  BrainCircuit,
+  Radio,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -21,17 +22,12 @@ export default function Layout() {
 
   return (
     <div className="app-shell">
-      {/* ── Sidebar ──────────────────────────────────────────────────────── */}
       <aside className="sidebar">
         <div className="sidebar-top-accent" aria-hidden="true" />
 
         <div className="sidebar-brand">
           <img
-<<<<<<< HEAD
             src="/RakṣāSetu.png"
-=======
-            src="/MainLogo.png"
->>>>>>> 1168dca (Initial secure commit)
             alt="RakṣāSetu logo"
             className="sidebar-logo-mark"
             onError={(e) => {
@@ -41,11 +37,7 @@ export default function Layout() {
           />
           <div className="sidebar-brand-copy">
             <div className="sidebar-logo-text">RakṣāSetu</div>
-<<<<<<< HEAD
             <div className="sidebar-logo-sub">India SDMA Portal</div>
-=======
-            <div className="sidebar-logo-sub">COMMAND CENTER</div>
->>>>>>> 1168dca (Initial secure commit)
           </div>
         </div>
 
@@ -63,7 +55,6 @@ export default function Layout() {
           </div>
 
           <div className="sidebar-section">
-<<<<<<< HEAD
             <div className="sidebar-section-label">AI & Early Warning</div>
             <NavLink to="/ai-hub" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
               <BrainCircuit size={16} />
@@ -73,18 +64,12 @@ export default function Layout() {
 
           <div className="sidebar-section">
             <div className="sidebar-section-label">Alert Management</div>
-            <NavLink to="/events" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+            <NavLink to="/events" end className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
               <AlertTriangle size={16} />
               Disaster Events
-=======
-            <div className="sidebar-section-label">Alerts</div>
-            <NavLink to="/events" end className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-              <TriangleAlert size={16} />
-              <span>Disaster Events</span>
->>>>>>> 1168dca (Initial secure commit)
             </NavLink>
             <NavLink to="/events/new" end className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-              <CirclePlus size={16} />
+              <PlusCircle size={16} />
               <span>New Event</span>
             </NavLink>
           </div>
@@ -114,7 +99,6 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* ── Main ─────────────────────────────────────────────────────────── */}
       <main className="main-content">
         <Outlet />
       </main>
