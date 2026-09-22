@@ -1,8 +1,7 @@
 // ── Shared type definitions ───────────────────────────────────────────────────
 
 export type Severity =
-  | 'Low' | 'Medium' | 'High' | 'Critical'
-  | 'Advisory' | 'Watch' | 'Warning' | 'Emergency';
+  | 'Low' | 'Medium' | 'High' | 'Critical';
 
 export type DisasterType =
   | 'Flood' | 'FlashFlood' | 'HeavyRainfall' | 'UrbanWaterlogging'

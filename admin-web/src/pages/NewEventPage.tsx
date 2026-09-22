@@ -11,11 +11,45 @@ const DISASTER_TYPES: DisasterType[] = [
   'Earthquake', 'Fire', 'Tsunami', 'Drought', 'ChemicalSpill', 'Other',
 ];
 
-const SEVERITY_LEVELS: Severity[] = ['Advisory', 'Watch', 'Warning', 'Emergency', 'Low', 'Medium', 'High', 'Critical'];
+const SEVERITY_LEVELS: Severity[] = ['Low', 'Medium', 'High', 'Critical'];
 
-const UP_DISTRICTS = [
-  'Varanasi', 'Gorakhpur', 'Prayagraj', 'Lucknow',
-  'Ayodhya', 'Kanpur', 'Mirzapur', 'Ballia',
+const INDIA_STATES = [
+  { name: 'Andhra Pradesh', districts: ['Anantapur', 'Chittoor', 'East Godavari', 'Guntur', 'Kadapa', 'Krishna', 'Kurnool', 'Nellore', 'Prakasam', 'Srikakulam', 'Visakhapatnam', 'Vizianagaram', 'West Godavari'] },
+  { name: 'Arunachal Pradesh', districts: ['Anjaw', 'Changlang', 'Dibang Valley', 'East Kameng', 'East Siang', 'Kamle', 'Kra Daadi', 'Kurung Kumey', 'Lohit', 'Longding', 'Lower Dibang Valley', 'Lower Siang', 'Lower Subansiri', 'Namsai', 'Pakke-Kessang', 'Papum Pare', 'Shi Yomi', 'Siang', 'Tawang', 'Tirap', 'Upper Dibang Valley', 'Upper Siang', 'Upper Subansiri', 'West Kameng', 'West Siang'] },
+  { name: 'Assam', districts: ['Baksa', 'Barpeta', 'Biswanath', 'Bongaigaon', 'Cachar', 'Charaideo', 'Chirang', 'Darrang', 'Dhemaji', 'Dhubri', 'Dibrugarh', 'Dima Hasao', 'Goalpara', 'Golaghat', 'Hailakandi', 'Hojai', 'Jorhat', 'Kamrup Metropolitan', 'Kamrup Rural', 'Karbi Anglong', 'Karimganj', 'Kokrajhar', 'Lakhimpur', 'Majuli', 'Morigaon', 'Nagaon', 'Nalbari', 'Sivasagar', 'Sonitpur', 'South Salmara-Mankachar', 'Tinsukia', 'Udalguri', 'West Karbi Anglong'] },
+  { name: 'Bihar', districts: ['Araria', 'Arwal', 'Aurangabad', 'Banka', 'Begusarai', 'Bhagalpur', 'Bhojpur', 'Buxar', 'Darbhanga', 'East Champaran', 'Gaya', 'Gopalganj', 'Jamui', 'Jehanabad', 'Kaimur', 'Katihar', 'Khagaria', 'Kishanganj', 'Lakhisarai', 'Madhepura', 'Madhubani', 'Munger', 'Muzaffarpur', 'Nalanda', 'Nawada', 'Patna', 'Purnia', 'Rohtas', 'Saharsa', 'Samastipur', 'Saran', 'Sheikhpura', 'Sheohar', 'Sitamarhi', 'Siwan', 'Supaul', 'Vaishali', 'West Champaran'] },
+  { name: 'Chhattisgarh', districts: ['Balod', 'Baloda Bazar', 'Balrampur', 'Bastar', 'Bemetara', 'Bijapur', 'Bilaspur', 'Dantewada', 'Dhamtari', 'Durg', 'Gariaband', 'Gaurela-Pendra-Marwahi', 'Janjgir-Champa', 'Jashpur', 'Kabirdham', 'Kanker', 'Kondagaon', 'Korba', 'Koriya', 'Mahasamund', 'Mungeli', 'Narayanpur', 'Raigarh', 'Raipur', 'Rajnandgaon', 'Sarangarh-Bilaigarh', 'Sukma', 'Surajpur', 'Surguja'] },
+  { name: 'Goa', districts: ['North Goa', 'South Goa'] },
+  { name: 'Gujarat', districts: ['Ahmedabad', 'Amreli', 'Anand', 'Aravalli', 'Banaskantha', 'Bharuch', 'Bhavnagar', 'Botad', 'Chhota Udaipur', 'Dahod', 'Dang', 'Devbhoomi Dwarka', 'Gandhinagar', 'Gir Somnath', 'Jamnagar', 'Junagadh', 'Kheda', 'Kutch', 'Mahisagar', 'Mehsana', 'Modasa', 'Morbi', 'Narmada', 'Navsari', 'Panchmahal', 'Patan', 'Porbandar', 'Rajkot', 'Sabarkantha', 'Surat', 'Surendranagar', 'Tapi', 'Vadodara', 'Valsad'] },
+  { name: 'Haryana', districts: ['Ambala', 'Bhiwani', 'Charkhi Dadri', 'Faridabad', 'Fatehabad', 'Gurugram', 'Hisar', 'Jhajjar', 'Jind', 'Kaithal', 'Karnal', 'Kurukshetra', 'Mahendragarh', 'Nuh', 'Palwal', 'Panchkula', 'Panipat', 'Rewari', 'Rohtak', 'Sirsa', 'Sonipat', 'Yamunanagar'] },
+  { name: 'Himachal Pradesh', districts: ['Bilaspur', 'Chamba', 'Hamirpur', 'Kangra', 'Kinnaur', 'Kullu', 'Lahaul and Spiti', 'Mandi', 'Shimla', 'Sirmaur', 'Solan', 'Una'] },
+  { name: 'Jharkhand', districts: ['Bokaro', 'Chatra', 'Deoghar', 'Dhanbad', 'Dumka', 'East Singhbhum', 'Garhwa', 'Giridih', 'Godda', 'Gumla', 'Hazaribagh', 'Jamtara', 'Khunti', 'Koderma', 'Latehar', 'Lohardaga', 'Pakur', 'Palamu', 'Ramgarh', 'Ranchi', 'Sahibganj', 'Saraikela-Kharsawan', 'Simdega', 'West Singhbhum'] },
+  { name: 'Karnataka', districts: ['Bagalkot', 'Ballari', 'Belagavi', 'Bengaluru Rural', 'Bengaluru Urban', 'Bidar', 'Chamarajanagar', 'Chikkaballapur', 'Chikkamagaluru', 'Chitradurga', 'Dakshina Kannada', 'Davanagere', 'Dharwad', 'Gadag', 'Hassan', 'Haveri', 'Kalaburagi', 'Kodagu', 'Kolar', 'Koppal', 'Mandya', 'Mysuru', 'Raichur', 'Ramanagara', 'Shivamogga', 'Tumakuru', 'Udupi', 'Uttara Kannada', 'Vijayanagara', 'Vijayapura', 'Yadgir'] },
+  { name: 'Kerala', districts: ['Alappuzha', 'Ernakulam', 'Idukki', 'Kannur', 'Kasaragod', 'Kollam', 'Kottayam', 'Kozhikode', 'Malappuram', 'Palakkad', 'Pathanamthitta', 'Thiruvananthapuram', 'Thrissur', 'Wayanad'] },
+  { name: 'Madhya Pradesh', districts: ['Agar Malwa', 'Alirajpur', 'Anuppur', 'Ashoknagar', 'Balaghat', 'Barwani', 'Betul', 'Bhind', 'Bhopal', 'Burhanpur', 'Chhatarpur', 'Chhindwara', 'Damoh', 'Datia', 'Dewas', 'Dhar', 'Dindori', 'Guna', 'Gwalior', 'Harda', 'Hoshangabad', 'Indore', 'Jabalpur', 'Jhabua', 'Katni', 'Khandwa', 'Khargone', 'Mandla', 'Mandsaur', 'Morena', 'Narsinghpur', 'Neemuch', 'Panna', 'Raisen', 'Rajgarh', 'Ratlam', 'Rewa', 'Sagar', 'Satna', 'Sehore', 'Seoni', 'Shahdol', 'Shajapur', 'Sheopur', 'Shivpuri', 'Sidhi', 'Singrauli', 'Tikamgarh', 'Ujjain', 'Umaria', 'Vidisha'] },
+  { name: 'Maharashtra', districts: ['Ahmednagar', 'Akola', 'Amravati', 'Aurangabad', 'Beed', 'Bhandara', 'Buldhana', 'Chandrapur', 'Dhule', 'Gadchiroli', 'Gondia', 'Hingoli', 'Jalgaon', 'Jalna', 'Kolhapur', 'Latur', 'Mumbai City', 'Mumbai Suburban', 'Nagpur', 'Nanded', 'Nandurbar', 'Nashik', 'Osmanabad', 'Palghar', 'Parbhani', 'Pune', 'Raigad', 'Ratnagiri', 'Sangli', 'Satara', 'Sindhudurg', 'Solapur', 'Thane', 'Wardha', 'Washim', 'Yavatmal'] },
+  { name: 'Manipur', districts: ['Bishnupur', 'Chandel', 'Churachandpur', 'Imphal East', 'Imphal West', 'Jiribam', 'Kakching', 'Kamjong', 'Kangpokpi', 'Noney', 'Pherzawl', 'Senapati', 'Tamenglong', 'Tengnoupal', 'Thoubal', 'Ukhrul'] },
+  { name: 'Meghalaya', districts: ['East Garo Hills', 'East Jaintia Hills', 'East Khasi Hills', 'North Garo Hills', 'Ri-Bhoi', 'South Garo Hills', 'South West Garo Hills', 'South West Khasi Hills', 'West Garo Hills', 'West Jaintia Hills', 'West Khasi Hills'] },
+  { name: 'Mizoram', districts: ['Aizawl', 'Champhai', 'Hnahthial', 'Kolasib', 'Lawngtlai', 'Lunglei', 'Mamit', 'Saiha', 'Saitual', 'Serchhip'] },
+  { name: 'Nagaland', districts: ['Chumoukedima', 'Dimapur', 'Kiphire', 'Kohima', 'Longleng', 'Mokokchung', 'Mon', 'Niuland', 'Peren', 'Phek', 'Phomg', 'Tuensang', 'Tseminyu', 'Wokha', 'Zunheboto'] },
+  { name: 'Odisha', districts: ['Angul', 'Balangir', 'Balasore', 'Bargarh', 'Bhadrak', 'Boudh', 'Cuttack', 'Debagarh', 'Dhenkanal', 'Gajapati', 'Ganjam', 'Jagatsinghpur', 'Jajpur', 'Jharsuguda', 'Kalahandi', 'Kandhamal', 'Kendrapara', 'Kendujhar', 'Khordha', 'Koraput', 'Malkangiri', 'Mayurbhanj', 'Nabarangpur', 'Nayagarh', 'Nuapada', 'Puri', 'Rayagada', 'Sambalpur', 'Sonepur', 'Sundargarh'] },
+  { name: 'Punjab', districts: ['Amritsar', 'Barnala', 'Bathinda', 'Faridkot', 'Fatehgarh Sahib', 'Fazilka', 'Ferozepur', 'Gurdaspur', 'Hoshiarpur', 'Jalandhar', 'Kapurthala', 'Ludhiana', 'Mansa', 'Moga', 'Mohali', 'Muktsar', 'Pathankot', 'Patiala', 'Rupnagar', 'Sahibzada Ajit Singh Nagar', 'Sangrur', 'Tarn Taran'] },
+  { name: 'Rajasthan', districts: ['Ajmer', 'Alwar', 'Anupgarh', 'Balotra', 'Banswara', 'Baran', 'Barmer', 'Beawar', 'Bikaner', 'Bundi', 'Chittorgarh', 'Churu', 'Dausa', 'Deeg', 'Dholpur', 'Didwana-Kuchaman', 'Dudu', 'Ganganagar', 'Gangapur City', 'Hanumangarh', 'Jaipur', 'Jaisalmer', 'Jalore', 'Jhalawar', 'Jhunjhunu', 'Jodhpur', 'Karauli', 'Kekri', 'Khairthal-Tijara', 'Kota', 'Nagaur', 'Neem Ka Thana', 'Pali', 'Phalodi', 'Rajsamand', 'Salumber', 'Sanchore', 'Sawai Madhopur', 'Shahpura', 'Sikar', 'Sirohi', 'Sri Ganganagar', 'Tonk', 'Udaipur'] },
+  { name: 'Sikkim', districts: ['East Sikkim', 'North Sikkim', 'South Sikkim', 'West Sikkim'] },
+  { name: 'Tamil Nadu', districts: ['Ariyalur', 'Chennai', 'Coimbatore', 'Cuddalore', 'Dharmapuri', 'Dindigul', 'Erode', 'Kallakurichi', 'Kanchipuram', 'Kanyakumari', 'Karur', 'Krishnagiri', 'Madurai', 'Mayiladuthurai', 'Nagapattinam', 'Nilgiris', 'Namakkal', 'Perambalur', 'Pudukkottai', 'Ramanathapuram', 'Ranipet', 'Salem', 'Sivaganga', 'Tenkasi', 'Thanjavur', 'Theni', 'Thiruvallur', 'Thiruvarur', 'Thoothukudi', 'Tirunelveli', 'Tirupathur', 'Tiruppur', 'Tiruvannamalai', 'Trichy', 'Tuticorin', 'Vellore', 'Viluppuram', 'Virudhunagar'] },
+  { name: 'Telangana', districts: ['Adilabad', 'Bhadradri Kothagudem', 'Hyderabad', 'Jagitial', 'Jangoan', 'Jayashankar Bhupalpally', 'Jogulamba Gadwal', 'Kamareddy', 'Karimnagar', 'Khammam', 'Komaram Bheem Asifabad', 'Mahabubabad', 'Mahabubnagar', 'Mancherial', 'Medak', 'Medchal-Malkajgiri', 'Mulugu', 'Nagarkurnool', 'Nalgonda', 'Narayanpet', 'Nirmal', 'Nizamabad', 'Peddapalli', 'Rajanna Sircilla', 'Ranga Reddy', 'Sangareddy', 'Siddipet', 'Suryapet', 'Vikarabad', 'Wanaparthy', 'Warangal Rural', 'Warangal Urban', 'Yadadri Bhuvanagiri'] },
+  { name: 'Tripura', districts: ['Dhalai', 'Gomati', 'Khowai', 'North Tripura', 'Sepahijala', 'South Tripura', 'Unakoti', 'West Tripura'] },
+  { name: 'Uttar Pradesh', districts: ['Agra', 'Aligarh', 'Ambedkar Nagar', 'Amethi', 'Amroha', 'Ayodhya', 'Azamgarh', 'Baghpat', 'Bahraich', 'Ballia', 'Balrampur', 'Banda', 'Barabanki', 'Bareilly', 'Basti', 'Bhadohi', 'Bijnor', 'Budaun', 'Bulandshahr', 'Chandauli', 'Chitrakoot', 'Deoria', 'Etah', 'Etawah', 'Farrukhabad', 'Fatehpur', 'Firozabad', 'Gautam Buddha Nagar', 'Ghaziabad', 'Ghazipur', 'Gonda', 'Gorakhpur', 'Hamirpur', 'Hapur', 'Hardoi', 'Hathras', 'Jalaun', 'Jaunpur', 'Jhansi', 'Kannauj', 'Kanpur Dehat', 'Kanpur Nagar', 'Kasganj', 'Kaushambi', 'Kheri', 'Kushinagar', 'Lalitpur', 'Lucknow', 'Maharajganj', 'Mahoba', 'Mainpuri', 'Mathura', 'Mau', 'Meerut', 'Mirzapur', 'Moradabad', 'Muzaffarnagar', 'Pilibhit', 'Pratapgarh', 'Prayagraj', 'Raebareli', 'Rampur', 'Saharanpur', 'Sambhal', 'Sant Kabir Nagar', 'Shahjahanpur', 'Shamli', 'Shravasti', 'Siddharthnagar', 'Sitapur', 'Sonbhadra', 'Sultanpur', 'Unnao', 'Varanasi'] },
+  { name: 'Uttarakhand', districts: ['Almora', 'Bageshwar', 'Chamoli', 'Champawat', 'Dehradun', 'Haridwar', 'Nainital', 'Pauri Garhwal', 'Pithoragarh', 'Rudraprayag', 'Tehri Garhwal', 'Udham Singh Nagar', 'Uttarkashi'] },
+  { name: 'West Bengal', districts: ['Alipurduar', 'Bankura', 'Birbhum', 'Cooch Behar', 'Dakshin Dinajpur', 'Darjeeling', 'Hooghly', 'Howrah', 'Jalpaiguri', 'Jhargram', 'Kalimpong', 'Kolkata', 'Malda', 'Murshidabad', 'Nadia', 'North 24 Parganas', 'Paschim Bardhaman', 'Paschim Medinipur', 'Purba Bardhaman', 'Purba Medinipur', 'Purulia', 'South 24 Parganas', 'Uttar Dinajpur'] },
+  { name: 'Andaman and Nicobar Islands', districts: ['Nicobar', 'North and Middle Andaman', 'South Andaman'] },
+  { name: 'Chandigarh', districts: ['Chandigarh'] },
+  { name: 'Dadra and Nagar Haveli and Daman and Diu', districts: ['Dadra and Nagar Haveli', 'Daman', 'Diu'] },
+  { name: 'Delhi', districts: ['Central Delhi', 'East Delhi', 'New Delhi', 'North Delhi', 'North East Delhi', 'North West Delhi', 'Shahdara', 'South Delhi', 'South East Delhi', 'South West Delhi', 'West Delhi'] },
+  { name: 'Jammu and Kashmir', districts: ['Anantnag', 'Bandipora', 'Baramulla', 'Budgam', 'Doda', 'Ganderbal', 'Jammu', 'Kathua', 'Kishtwar', 'Kulgam', 'Kupwara', 'Poonch', 'Pulwama', 'Rajouri', 'Ramban', 'Reasi', 'Samba', 'Shopian', 'Srinagar', 'Udhampur'] },
+  { name: 'Ladakh', districts: ['Kargil', 'Leh'] },
+  { name: 'Lakshadweep', districts: ['Agatti', 'Amini', 'Andrott', 'Bitra', 'Chetlat', 'Kadmat', 'Kalpeni', 'Kavaratti', 'Kilthan', 'Minicoy'] },
+  { name: 'Puducherry', districts: ['Karaikal', 'Mahe', 'Puducherry', 'Yanam'] },
 ];
 
 export default function NewEventPage() {
@@ -24,7 +58,8 @@ export default function NewEventPage() {
   const [title, setTitle] = useState('');
   const [hindiTitle, setHindiTitle] = useState('');
   const [type, setType] = useState<DisasterType>('Flood');
-  const [severity, setSeverity] = useState<Severity>('Warning');
+  const [severity, setSeverity] = useState<Severity>('Medium');
+  const [state, setState] = useState('Uttar Pradesh');
   const [district, setDistrict] = useState('Varanasi');
   const [description, setDescription] = useState('');
   const [hindiDesc, setHindiDesc] = useState('');
@@ -43,7 +78,16 @@ export default function NewEventPage() {
     getGuides().then((r) => setGuides(r.data.guides)).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const activeState = INDIA_STATES.find((item) => item.name === state) ?? INDIA_STATES[0];
+    const nextDistrict = activeState.districts.includes(district) ? district : activeState.districts[0];
+    if (nextDistrict !== district) {
+      setDistrict(nextDistrict);
+    }
+  }, [state, district]);
+
   const filteredGuides = guides.filter((g) => g.disasterType === type && g.isPublished);
+  const selectedStateData = INDIA_STATES.find((item) => item.name === state) ?? INDIA_STATES[0];
 
   const handleSubmit = async (actionStatus: EventStatus) => {
     setError('');
@@ -71,7 +115,7 @@ export default function NewEventPage() {
         type,
         severity,
         district,
-        state: 'Uttar Pradesh',
+        state,
         description,
         translations: {
           hi: {
@@ -150,54 +194,74 @@ export default function NewEventPage() {
               <div className="card new-event-card">
                 <div className="new-event-card-header">
                   <div>
-                    <h3>1. Hazard & Regional Target</h3>
+                    <h3>Hazard & Regional Target</h3>
                     <p className="new-event-card-subtitle">Define the incident and alert behavior.</p>
                   </div>
                 </div>
 
                 {error && <div className="alert alert-error" style={{ marginBottom: 12 }}>{error}</div>}
 
-                <div className="new-event-field-section">
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="ev-state">State</label>
-                      <input id="ev-state" className="form-control" value="Uttar Pradesh (UP)" disabled />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="ev-district">Target District *</label>
-                      <select id="ev-district" className="form-control" value={district} onChange={(e) => setDistrict(e.target.value)}>
-                        {UP_DISTRICTS.map((d) => (
-                          <option key={d} value={d}>{d}</option>
-                        ))}
-                      </select>
-                    </div>
+                <div className="new-event-card-stack">
+                  <div className="new-event-field-card">
+                    <label className="form-label" htmlFor="ev-state">State *</label>
+                    <select id="ev-state" className="form-control" value={state} onChange={(e) => setState(e.target.value)}>
+                      {INDIA_STATES.map((item) => (
+                        <option key={item.name} value={item.name}>{item.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="new-event-field-card">
+                    <label className="form-label" htmlFor="ev-district">Target District *</label>
+                    <select id="ev-district" className="form-control" value={district} onChange={(e) => setDistrict(e.target.value)}>
+                      {selectedStateData.districts.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card new-event-card">
+                <div className="new-event-card-header">
+                  <div>
+                    <h3>Hazard Classification</h3>
+                    <p className="new-event-card-subtitle">Choose the hazard type and alert level.</p>
                   </div>
                 </div>
 
-                <div className="new-event-field-section">
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="ev-type">Hazard Taxonomy *</label>
-                      <select id="ev-type" className="form-control" value={type} onChange={(e) => setType(e.target.value as DisasterType)}>
-                        {DISASTER_TYPES.map((t) => (
-                          <option key={t} value={t}>{t}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="ev-severity">NDMA Severity Tier *</label>
-                      <select id="ev-severity" className="form-control new-event-severity-select" value={severity} onChange={(e) => setSeverity(e.target.value as Severity)}>
-                        {SEVERITY_LEVELS.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                      <div className="form-hint">Advisory (Yellow) · Watch (Orange) · Warning (Red) · Emergency</div>
-                    </div>
+                <div className="new-event-card-stack">
+                  <div className="new-event-field-card">
+                    <label className="form-label" htmlFor="ev-type">Hazard Taxonomy *</label>
+                    <select id="ev-type" className="form-control" value={type} onChange={(e) => setType(e.target.value as DisasterType)}>
+                      {DISASTER_TYPES.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="new-event-field-card">
+                    <label className="form-label" htmlFor="ev-severity">Severity *</label>
+                    <select id="ev-severity" className="form-control new-event-severity-select" value={severity} onChange={(e) => setSeverity(e.target.value as Severity)}>
+                      {SEVERITY_LEVELS.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <div className="form-hint">Sets the local alert intensity for citizen notifications.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card new-event-card">
+                <div className="new-event-card-header">
+                  <div>
+                    <h3>Alert Messaging</h3>
+                    <p className="new-event-card-subtitle">Write advisory content for English and Hindi audiences.</p>
                   </div>
                 </div>
 
-                <div className="new-event-field-section">
-                  <div className="form-group">
+                <div className="new-event-card-stack">
+                  <div className="new-event-field-card">
                     <label className="form-label" htmlFor="ev-title">Title (English) *</label>
                     <input
                       id="ev-title"
@@ -209,10 +273,8 @@ export default function NewEventPage() {
                       maxLength={120}
                     />
                   </div>
-                </div>
 
-                <div className="new-event-field-section">
-                  <div className="form-group">
+                  <div className="new-event-field-card">
                     <label className="form-label" htmlFor="ev-title-hi">Title (Hindi / हिंदी)</label>
                     <input
                       id="ev-title-hi"
@@ -223,10 +285,8 @@ export default function NewEventPage() {
                       maxLength={120}
                     />
                   </div>
-                </div>
 
-                <div className="new-event-field-section">
-                  <div className="form-group">
+                  <div className="new-event-field-card">
                     <label className="form-label" htmlFor="ev-desc">Advisory Details (English)</label>
                     <textarea
                       id="ev-desc"
@@ -238,10 +298,8 @@ export default function NewEventPage() {
                       placeholder="River level is 0.4m above warning mark. Citizens in low-lying ghats must relocate…"
                     />
                   </div>
-                </div>
 
-                <div className="new-event-field-section">
-                  <div className="form-group">
+                  <div className="new-event-field-card">
                     <label className="form-label" htmlFor="ev-desc-hi">Advisory Details (Hindi / हिंदी)</label>
                     <textarea
                       id="ev-desc-hi"
@@ -254,9 +312,18 @@ export default function NewEventPage() {
                     />
                   </div>
                 </div>
+              </div>
 
-                <div className="new-event-field-section">
-                  <div className="form-group">
+              <div className="card new-event-card">
+                <div className="new-event-card-header">
+                  <div>
+                    <h3>Reference & Dispatch</h3>
+                    <p className="new-event-card-subtitle">Guardrail settings and recommended response guide.</p>
+                  </div>
+                </div>
+
+                <div className="new-event-card-stack">
+                  <div className="new-event-field-card">
                     <label className="form-label" htmlFor="ev-guide">Safety Guide</label>
                     <select id="ev-guide" className="form-control" value={safetyGuideId} onChange={(e) => setSafetyGuideId(e.target.value)}>
                       <option value="">— None —</option>
@@ -265,32 +332,32 @@ export default function NewEventPage() {
                       ))}
                     </select>
                   </div>
-                </div>
 
-                <div className="new-event-field-section">
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="ev-buffer">Buffer Radius (km)</label>
-                      <input
-                        id="ev-buffer"
-                        type="number"
-                        className="form-control"
-                        min={0}
-                        max={100}
-                        step={0.5}
-                        value={bufferRadiusKm}
-                        onChange={(e) => setBufferRadiusKm(Number(e.target.value))}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label" htmlFor="ev-expires">Expires At</label>
-                      <input
-                        id="ev-expires"
-                        type="datetime-local"
-                        className="form-control"
-                        value={expiresAt}
-                        onChange={(e) => setExpiresAt(e.target.value)}
-                      />
+                  <div className="new-event-field-card">
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="ev-buffer">Buffer Radius (km)</label>
+                        <input
+                          id="ev-buffer"
+                          type="number"
+                          className="form-control"
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          value={bufferRadiusKm}
+                          onChange={(e) => setBufferRadiusKm(Number(e.target.value))}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="ev-expires">Expires At</label>
+                        <input
+                          id="ev-expires"
+                          type="datetime-local"
+                          className="form-control"
+                          value={expiresAt}
+                          onChange={(e) => setExpiresAt(e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -322,7 +389,7 @@ export default function NewEventPage() {
             <div className="card new-event-map-card">
               <div className="new-event-map-header">
                 <div>
-                  <h3>2. Draw Disaster Geofence</h3>
+                  <h3>Draw Disaster Geofence</h3>
                   <p className="new-event-card-subtitle">Define the geographical area for the impact zone.</p>
                 </div>
               </div>
