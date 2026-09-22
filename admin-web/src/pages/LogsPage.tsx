@@ -43,9 +43,8 @@ export default function LogsPage() {
       </div>
 
       <div className="page-content">
-        {/* ── Stats ─────────────────────────────────────────────────────── */}
         {stats && (
-          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 20 }}>
+          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', marginBottom: 20 }}>
             {Object.entries(stats.delivery).map(([k, v]) => (
               <div className="stat-card" key={k}>
                 <div className="stat-label">{k}</div>
@@ -59,17 +58,28 @@ export default function LogsPage() {
           </div>
         )}
 
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-          {STATUS_FILTERS.map(f => (
-            <button key={f.value} className={`btn btn-sm ${status === f.value ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => { setStatus(f.value); setPage(1); }}>
-              {f.label}
+        <div className="card logs-filter-card">
+          <div className="toolbar-header compact">
+            <div>
+              <div className="section-kicker">Delivery Status</div>
+              <h2 className="section-title">Alert Logs</h2>
+            </div>
+            <button className="btn btn-secondary btn-sm" onClick={load}>
+              <RefreshCw size={14} /> Refresh
             </button>
-          ))}
+          </div>
+
+          <div className="toolbar-actions wrap">
+            {STATUS_FILTERS.map(f => (
+              <button key={f.value} className={`btn btn-sm ${status === f.value ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => { setStatus(f.value); setPage(1); }}>
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="card">
+        <div className="card logs-table-card">
           {loading ? (
             <div className="loading-center"><span className="spinner" /> Loading logs…</div>
           ) : logs.length === 0 ? (

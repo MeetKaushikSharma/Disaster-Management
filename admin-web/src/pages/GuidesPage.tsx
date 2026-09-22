@@ -96,17 +96,29 @@ export default function GuidesPage() {
       </div>
 
       <div className="page-content">
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
-          <select className="form-control" style={{ width: 'auto' }}
-            value={filterType} onChange={e => setFilterType(e.target.value)}>
-            <option value="">All Disaster Types</option>
-            {DISASTER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <button className="btn btn-ghost btn-icon btn-sm" onClick={load}><RefreshCw size={14} /></button>
+        <div className="toolbar-card">
+          <div className="toolbar-header">
+            <div>
+              <div className="section-kicker">Guide Directory</div>
+              <h2 className="section-title">Safety Guides</h2>
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
+              <PlusCircle size={14} /> New Guide
+            </button>
+          </div>
+
+          <div className="toolbar-actions">
+            <select className="form-control toolbar-select" value={filterType} onChange={e => setFilterType(e.target.value)}>
+              <option value="">All Disaster Types</option>
+              {DISASTER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <button className="btn btn-secondary btn-sm" onClick={load}>
+              <RefreshCw size={14} /> Refresh
+            </button>
+          </div>
         </div>
 
-        <div className="card">
+        <div className="card guides-list-card">
           {loading ? (
             <div className="loading-center"><span className="spinner" /> Loading guides…</div>
           ) : guides.length === 0 ? (

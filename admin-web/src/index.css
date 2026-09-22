@@ -1778,6 +1778,66 @@ tbody td {
 
 .page-header-left { display: flex; flex-direction: column; gap: 4px; }
 
+.toolbar-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px 20px 16px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+  margin-bottom: 18px;
+}
+
+.toolbar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.toolbar-header.compact {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
+
+.section-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7b8490;
+}
+
+.section-title {
+  margin-top: 2px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #0b2a4a;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar-actions.wrap {
+  flex-wrap: wrap;
+}
+
+.toolbar-select {
+  width: min(240px, 100%);
+}
+
+.guides-list-card,
+.logs-table-card,
+.logs-filter-card {
+  padding: 20px 18px 18px;
+}
+
 /* Leaflet draw overrides to match B&W theme */
 .leaflet-draw-toolbar a { background-color: var(--white) !important; border-color: var(--grey-300) !important; color: var(--black) !important; }
 .leaflet-draw-toolbar a:hover { background-color: var(--grey-100) !important; }
