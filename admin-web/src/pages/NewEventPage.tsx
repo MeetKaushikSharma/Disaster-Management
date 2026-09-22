@@ -125,11 +125,17 @@ export default function NewEventPage() {
   return (
     <>
       <div className="topbar">
+<<<<<<< HEAD
         <span className="topbar-title">Create Disaster Event (India SDMA)</span>
+=======
+        <div className="topbar-title-wrap">
+          <span className="topbar-title">New Disaster Event</span>
+        </div>
+>>>>>>> 1168dca (Initial secure commit)
       </div>
 
       {dispatchInfo && (
-        <div className="alert alert-success" style={{ margin: '12px 24px 0', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+        <div className="alert alert-success new-event-success-banner" aria-live="polite">
           <CheckCircle size={16} />
           <strong>
             {dispatchInfo.status === 'published' ? 'Alert Published & Dispatched!' : 'Event Saved successfully!'}
@@ -138,6 +144,7 @@ export default function NewEventPage() {
         </div>
       )}
 
+<<<<<<< HEAD
       <div className="page-content">
         <form onSubmit={(e: FormEvent) => { e.preventDefault(); handleSubmit('published'); }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
@@ -161,11 +168,53 @@ export default function NewEventPage() {
                       onChange={e => setDistrict(e.target.value)}>
                       {UP_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
+=======
+      <div className="page-content new-event-page-shell">
+        <form onSubmit={handleSubmit} className="new-event-form">
+          <div className="new-event-form-grid">
+            <div className="new-event-column">
+              <div className="card new-event-card">
+                <div className="new-event-card-header">
+                  <div>
+                    <h3>Event Details</h3>
+                    <p className="new-event-card-subtitle">Define the incident and alert behavior.</p>
                   </div>
                 </div>
 
-                <div className="form-row">
+                {error && <div className="alert alert-error" style={{ marginBottom: 12 }}>{error}</div>}
+
+                <div className="new-event-field-section">
                   <div className="form-group">
+                    <label className="form-label" htmlFor="ev-title">Event Title <span className="form-required">*</span></label>
+                    <input id="ev-title" className="form-control" required value={title}
+                      onChange={e => setTitle(e.target.value)} placeholder="e.g., Yamuna Flood Zone — Sector 14" maxLength={120} />
+>>>>>>> 1168dca (Initial secure commit)
+                  </div>
+                </div>
+
+                <div className="new-event-field-section">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="ev-type">Disaster Type <span className="form-required">*</span></label>
+                      <select id="ev-type" className="form-control" value={type}
+                        onChange={e => setType(e.target.value as DisasterType)}>
+                        {DISASTER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="ev-severity">Severity <span className="form-required">*</span></label>
+                      <select id="ev-severity" className="form-control new-event-severity-select" value={severity}
+                        onChange={e => setSeverity(e.target.value as Severity)}>
+                        {SEVERITY_LEVELS.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <div className="form-hint">Determines buzzer intensity on user devices</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="new-event-field-section">
+                  <div className="form-group">
+<<<<<<< HEAD
                     <label className="form-label" htmlFor="ev-type">Hazard Taxonomy *</label>
                     <select id="ev-type" className="form-control" value={type}
                       onChange={e => setType(e.target.value as DisasterType)}>
@@ -243,6 +292,80 @@ export default function NewEventPage() {
               <h3 style={{ marginBottom: 12 }}>2. Draw Disaster Geofence</h3>
 
               <div style={{ marginBottom: 12 }}>
+=======
+                    <label className="form-label" htmlFor="ev-desc">Description</label>
+                    <textarea id="ev-desc" className="form-control new-event-textarea" rows={3} value={description}
+                      onChange={e => setDescription(e.target.value)} maxLength={2000}
+                      placeholder="Describe the situation and immediate risks." />
+                  </div>
+                </div>
+
+                <div className="new-event-field-section">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="ev-guide">Safety Guide</label>
+                    <select id="ev-guide" className="form-control" value={safetyGuideId}
+                      onChange={e => setSafetyGuideId(e.target.value)}>
+                      <option value="">— None —</option>
+                      {filteredGuides.map(g => (
+                        <option key={g._id} value={g._id}>{g.title} ({g.language.toUpperCase()})</option>
+                      ))}
+                    </select>
+                    <div className="form-hint">Auto-opens on user's device when alert is received</div>
+                  </div>
+                </div>
+
+                <div className="new-event-field-section">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="ev-buffer">Buffer Radius <span className="form-unit">(km)</span></label>
+                      <input id="ev-buffer" type="number" className="form-control" min={0} max={100} step={0.5}
+                        value={bufferRadiusKm} onChange={e => setBufferRadiusKm(Number(e.target.value))} />
+                      <div className="form-hint">Extra fan-out beyond drawn zone</div>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="ev-expires">Expires At</label>
+                      <input id="ev-expires" type="datetime-local" className="form-control"
+                        value={expiresAt} onChange={e => setExpiresAt(e.target.value)} />
+                      <div className="form-hint">Leave blank for manual retraction</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card new-event-reference-card">
+                <div className="new-event-card-header compact">
+                  <div>
+                    <h4>Severity Reference</h4>
+                    <p className="new-event-card-subtitle compact">Alert behavior by severity level.</p>
+                  </div>
+                </div>
+                <div className="new-event-severity-list">
+                  {SEVERITY_LEVELS.map(s => (
+                    <div key={s} className="new-event-severity-row">
+                      <span className={`severity-badge ${s}`} style={{ minWidth: 74 }}>{s}</span>
+                      <span className="new-event-severity-text">
+                        {s === 'Low' && 'Silent notification, default sound'}
+                        {s === 'Medium' && 'High-priority, medium buzzer'}
+                        {s === 'High' && 'Max priority, loud buzzer'}
+                        {s === 'Critical' && 'Full-screen intent, overrides silent mode'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="card new-event-map-card">
+              <div className="new-event-map-header">
+                <div>
+                  <h3>Draw Disaster Zone</h3>
+                  <p className="new-event-card-subtitle">Define the geographical area where this alert will apply.</p>
+                </div>
+              </div>
+
+              <div className="new-event-zone-wrap">
+                <label className="form-label">Zone Type</label>
+>>>>>>> 1168dca (Initial secure commit)
                 <div className="zone-toggle">
                   <button type="button" className={`zone-toggle-btn${zoneType === 'radius' ? ' active' : ''}`}
                     onClick={() => setZoneType('radius')}>Radius Circle</button>
@@ -251,20 +374,25 @@ export default function NewEventPage() {
                 </div>
               </div>
 
-              <div className="map-hint">
+              <div className="new-event-info-box">
                 <MapPin size={13} />
+<<<<<<< HEAD
                 {zoneType === 'radius'
                   ? `Focusing on ${district}. Click centre on the map and drag outward to define the impact circle.`
                   : 'Click multiple points on the map to define the perimeter. Double-click the last point to close.'}
+=======
+                <span>Use the polygon tool to mark the affected boundary. Double-click to close the zone.</span>
+>>>>>>> 1168dca (Initial secure commit)
               </div>
 
+              <div className="new-event-map-meta">Alert Coverage Area</div>
               <ZoneMap
                 zoneType={zoneType}
                 onZoneChange={setZoneData}
               />
 
               {zoneData && (
-                <div className="alert alert-success" style={{ marginTop: 12, fontSize: 12 }}>
+                <div className="alert alert-success new-event-zone-summary" aria-live="polite">
                   <Info size={13} style={{ display: 'inline', marginRight: 6 }} />
                   {zoneType === 'radius'
                     ? `Radius Geofence: ${zoneData.radiusKm} km radius centered at [${zoneData.centre?.coordinates.map(c => c.toFixed(4)).join(', ')}]`
@@ -274,8 +402,12 @@ export default function NewEventPage() {
             </div>
           </div>
 
+<<<<<<< HEAD
           {/* ── Submit row ────────────────────────────────────────────────── */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
+=======
+          <div className="new-event-actions">
+>>>>>>> 1168dca (Initial secure commit)
             <button type="button" className="btn btn-secondary" onClick={() => navigate('/events')}>
               Cancel
             </button>

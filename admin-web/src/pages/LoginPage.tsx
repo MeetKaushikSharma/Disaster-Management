@@ -36,7 +36,7 @@ export default function LoginPage() {
 
         <div className="login-content">
           <div className="login-brand-wrap">
-            <img src="/RakṣāSetu.png" alt="RakṣāSetu" className="login-brand-logo" />
+            <img src="/RakṣāSetu.png" alt="RakṣāSetu" className="login-brand-logo" width="120" />
           </div>
 
           <div className="login-header">

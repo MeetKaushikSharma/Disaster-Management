@@ -103,43 +103,82 @@ export default function EventsPage() {
     }
   };
 
+  const activeCount = events.filter((ev) => ev.status === 'active').length;
+  const retractedCount = events.filter((ev) => ev.status === 'retracted').length;
+  const totalAlertsSent = events.reduce((sum, ev) => sum + (ev.alertsSentCount || 0), 0);
+
+  const summaryCards = [
+    { label: 'Active Events', value: (status === 'active' ? total : activeCount).toLocaleString(), helper: 'live incidents', variant: 'active' },
+    { label: 'Alerts Sent', value: totalAlertsSent.toLocaleString(), helper: 'dispatches', variant: 'sent' },
+    { label: 'Retracted', value: (status === 'retracted' ? total : retractedCount).toLocaleString(), helper: 'corrected alerts', variant: 'retracted' },
+  ];
+
   return (
     <>
       <div className="topbar">
-        <span className="topbar-title">Disaster Events ({total})</span>
+        <div className="events-header-meta">
+          <div className="events-title-row">
+            <span className="topbar-title">Disaster Events</span>
+            <span className="events-count-pill">{total} active</span>
+          </div>
+          <span className="events-subtitle">Monitor and manage active disaster alerts</span>
+        </div>
         <Link to="/events/new" className="btn btn-primary btn-sm">
           <PlusCircle size={14} /> New Event
         </Link>
       </div>
 
-      <div className="page-content">
-        {/* Status filter tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+      <div className="page-content events-page-shell">
+        <div className="events-toolbar">
           {STATUS_TABS.map(t => (
-            <button key={t.value} className={`btn btn-sm ${status === t.value ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => { setStatus(t.value); setPage(1); }}>
+            <button
+              key={t.value}
+              className={`events-filter-btn ${status === t.value ? 'active' : ''}`}
+              data-status={t.value}
+              onClick={() => { setStatus(t.value); setPage(1); }}
+              type="button"
+            >
               {t.label}
             </button>
           ))}
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={loadEvents} title="Refresh">
+          <button
+            className="btn btn-ghost btn-sm btn-icon events-refresh-btn"
+            onClick={loadEvents}
+            type="button"
+            aria-label="Refresh events"
+            title="Refresh events"
+          >
             <RefreshCw size={14} />
           </button>
         </div>
 
-        <div className="card">
+        <div className="events-summary-strip" aria-label="Event summary">
+          {summaryCards.map((card) => (
+            <div key={card.label} className={`events-summary-card events-summary-card--${card.variant}`}>
+              <span className="events-summary-label">{card.label}</span>
+              <strong className="events-summary-value">{card.value}</strong>
+              <span className="events-summary-helper">{card.helper}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="card events-card">
           {loading ? (
             <div className="loading-center"><span className="spinner" /> Loading events…</div>
           ) : events.length === 0 ? (
-            <div className="empty-state">
-              <AlertTriangle />
-              <p>No {status === 'all' ? '' : status} events found</p>
+            <div className="events-empty-state">
+              <div className="events-empty-icon">
+                <AlertTriangle size={18} />
+              </div>
+              <h3>No active disaster events</h3>
+              <p>The response command center is currently clear.</p>
             </div>
           ) : (
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Title</th>
+                    <th>Event</th>
                     <th>Type</th>
                     <th>Severity</th>
                     <th>Zone</th>
@@ -152,20 +191,19 @@ export default function EventsPage() {
                 <tbody>
                   {events.map((ev) => (
                     <tr key={ev._id}>
-                      <td style={{ fontWeight: 500, maxWidth: 200 }}>
-                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {ev.title}
-                        </div>
+                      <td className="events-title-cell">
+                        <div className="events-primary-title">{ev.title}</div>
+                        {ev.type && <div className="events-secondary-type">{ev.type}</div>}
                         {ev.correctionMessage && (
-                          <div style={{ fontSize: 11, color: 'var(--grey-400)', marginTop: 2 }}>
+                          <div className="events-correction-note">
                             ↩ {ev.correctionMessage}
                           </div>
                         )}
                       </td>
-                      <td style={{ color: 'var(--grey-600)' }}>{ev.type}</td>
+                      <td className="events-type-cell">{ev.type}</td>
                       <td><span className={`severity-badge ${ev.severity}`}>{ev.severity}</span></td>
-                      <td style={{ color: 'var(--grey-500)', fontSize: 12 }}>
-                        {ev.zoneType === 'radius' ? `${ev.radiusKm} km ⊙` : 'polygon'}
+                      <td className="events-zone-cell">
+                        {ev.zoneType === 'radius' ? `${ev.radiusKm} km radius` : ev.zoneType === 'polygon' ? 'Polygon zone' : 'Zone'}
                       </td>
                       <td><span className={`status-badge ${ev.status}`}>{ev.status}</span></td>
                       <td style={{ fontVariantNumeric: 'tabular-nums' }}>
