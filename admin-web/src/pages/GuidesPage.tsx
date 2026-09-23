@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { PlusCircle, RefreshCw, BookOpen, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { PlusCircle, RefreshCw, BookOpen, Trash2, BookText, ShieldCheck, Languages, CheckCircle2, CircleDashed } from 'lucide-react';
 import { getGuides, createGuide, deleteGuide } from '../api/services';
 import type { SafetyGuide, DisasterType } from '../types';
 
@@ -21,6 +21,23 @@ const LANGUAGES = [
   { code: 'or', label: 'Odia' },
 ];
 
+const getDisasterBadgeTone = (type: string) => {
+  const map: Record<string, string> = {
+    Cyclone: 'cyclone',
+    Earthquake: 'earthquake',
+    Flood: 'flood',
+    Heatwave: 'heatwave',
+    Landslide: 'landslide',
+    Fire: 'fire',
+    Tsunami: 'tsunami',
+    Drought: 'drought',
+    ChemicalSpill: 'chemical',
+    Other: 'other',
+  };
+
+  return map[type] || 'other';
+};
+
 const emptyForm = () => ({
   disasterType: 'Flood' as DisasterType,
   language: 'en',
@@ -30,23 +47,37 @@ const emptyForm = () => ({
 });
 
 export default function GuidesPage() {
-  const [guides,    setGuides]   = useState<SafetyGuide[]>([]);
-  const [loading,   setLoading]  = useState(true);
-  const [showForm,  setShowForm] = useState(false);
-  const [form,      setForm]     = useState(emptyForm());
+  const [guides, setGuides] = useState<SafetyGuide[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(emptyForm());
   const [submitting, setSubmitting] = useState(false);
-  const [error,     setError]    = useState('');
-  const [toast,     setToast]    = useState('');
+  const [formError, setFormError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [toast, setToast] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [languageFilter, setLanguageFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const load = () => {
     setLoading(true);
+    setLoadError('');
     getGuides(filterType ? { disasterType: filterType } : {})
       .then(r => setGuides(r.data.guides))
+      .catch(() => setLoadError('Unable to load safety guides. Please refresh the guide directory and try again.'))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, [filterType]);
+
+  const stats = useMemo(() => {
+    const totalGuides = guides.length;
+    const publishedCount = guides.filter(g => g.isPublished).length;
+    const languages = new Set(guides.map(g => String(g.language || 'en').toUpperCase())).size;
+    const disasterTypes = new Set(guides.map(g => g.disasterType)).size;
+
+    return { totalGuides, publishedCount, languages, disasterTypes };
+  }, [guides]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
@@ -61,7 +92,7 @@ export default function GuidesPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
+    setFormError('');
     setSubmitting(true);
     try {
       await createGuide(form);
@@ -71,7 +102,7 @@ export default function GuidesPage() {
       load();
     } catch (err: any) {
       const msgs = err.response?.data?.errors?.map((e: any) => e.message).join(', ');
-      setError(msgs || err.response?.data?.message || 'Failed to create guide');
+      setFormError(msgs || err.response?.data?.message || 'Failed to create guide');
     } finally {
       setSubmitting(false);
     }
@@ -89,46 +120,157 @@ export default function GuidesPage() {
   return (
     <>
       <div className="topbar">
-        <span className="topbar-title">Safety Guides ({guides.length})</span>
+        <div className="topbar-title-wrap">
+          <span className="topbar-title">Safety Guides</span>
+          <span className="topbar-subtitle">Preparedness guidance for citizens during disaster situations.</span>
+        </div>
         <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
           <PlusCircle size={14} /> New Guide
         </button>
       </div>
 
       <div className="page-content">
-        <div className="toolbar-card">
-          <div className="toolbar-header">
-            <div>
-              <div className="section-kicker">Guide Directory</div>
-              <h2 className="section-title">Safety Guides</h2>
+        <div className="toolbar-card guide-directory-card">
+          <div className="toolbar-header guide-toolbar-header">
+            <div className="guide-directory-meta">
+              <div className="guide-directory-kicker">Guide directory</div>
+              <div className="guide-directory-accent" />
             </div>
             <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
               <PlusCircle size={14} /> New Guide
             </button>
           </div>
 
-          <div className="toolbar-actions">
-            <select className="form-control toolbar-select" value={filterType} onChange={e => setFilterType(e.target.value)}>
-              <option value="">All Disaster Types</option>
-              {DISASTER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <button className="btn btn-secondary btn-sm" onClick={load}>
+          <div className="guide-directory-body">
+            <div className="guide-directory-icon-wrap">
+              <BookText size={18} />
+            </div>
+            <div className="guide-directory-copy">
+              <h2 className="section-title">Safety knowledge & preparedness</h2>
+              <p>Manage multilingual safety guidance linked to disaster alerts.</p>
+            </div>
+          </div>
+
+          <div className="toolbar-actions guide-filter-row">
+            <label className="filter-control">
+              <span>Disaster Type</span>
+              <select value={filterType} onChange={e => setFilterType(e.target.value)}>
+                <option value="">All Disaster Types</option>
+                {DISASTER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </label>
+
+            <label className="filter-control">
+              <span>Language</span>
+              <select value={languageFilter} onChange={e => setLanguageFilter(e.target.value)}>
+                <option value="all">All Languages</option>
+                {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+              </select>
+            </label>
+
+            <label className="filter-control">
+              <span>Publication Status</span>
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                <option value="all">All Status</option>
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+              </select>
+            </label>
+
+            <button className="btn btn-secondary btn-sm guide-refresh-btn" onClick={load}>
               <RefreshCw size={14} /> Refresh
             </button>
           </div>
         </div>
 
+        <div className="stats-grid guide-stats-grid">
+          <div className="stat-card stat-card-navy">
+            <div className="stat-card-icon"><BookOpen size={14} /></div>
+            <div className="stat-label">Total Guides</div>
+            <div className="stat-value">{stats.totalGuides}</div>
+            <div className="stat-sub">knowledge base</div>
+          </div>
+
+          <div className="stat-card stat-card-green">
+            <div className="stat-card-icon"><CheckCircle2 size={14} /></div>
+            <div className="stat-label">Published</div>
+            <div className="stat-value">{stats.publishedCount}</div>
+            <div className="stat-sub">available now</div>
+          </div>
+
+          <div className="stat-card stat-card-blue">
+            <div className="stat-card-icon"><Languages size={14} /></div>
+            <div className="stat-label">Languages</div>
+            <div className="stat-value">{stats.languages}</div>
+            <div className="stat-sub">active locales</div>
+          </div>
+
+          <div className="stat-card stat-card-orange">
+            <div className="stat-card-icon"><ShieldCheck size={14} /></div>
+            <div className="stat-label">Disaster Types</div>
+            <div className="stat-value">{stats.disasterTypes}</div>
+            <div className="stat-sub">risk categories</div>
+          </div>
+        </div>
+
         <div className="card guides-list-card">
+          <div className="table-card-header">
+            <span className="table-card-title">Guide Directory</span>
+            <span className="table-card-subtitle">All Guides</span>
+          </div>
+
           {loading ? (
-            <div className="loading-center"><span className="spinner" /> Loading guides…</div>
+            <div className="table-wrap">
+              <table className="guide-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Disaster Type</th>
+                    <th>Language</th>
+                    <th>Steps</th>
+                    <th>Version</th>
+                    <th>Published</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[1,2,3,4,5].map(index => (
+                    <tr key={index}>
+                      <td><div className="skeleton skeleton-title" /></td>
+                      <td><div className="skeleton skeleton-pill" /></td>
+                      <td><div className="skeleton skeleton-badge" /></td>
+                      <td><div className="skeleton skeleton-steps" /></td>
+                      <td><div className="skeleton skeleton-badge" /></td>
+                      <td><div className="skeleton skeleton-status" /></td>
+                      <td><div className="skeleton skeleton-icon" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : loadError ? (
+            <div className="error-state">
+              <div className="error-state-icon"><CircleDashed size={22} /></div>
+              <h3>Unable to load safety guides</h3>
+              <p>Please refresh the guide directory and try again.</p>
+              <button className="btn btn-secondary btn-sm" onClick={load}>
+                <RefreshCw size={14} /> Refresh Guides
+              </button>
+            </div>
           ) : guides.length === 0 ? (
-            <div className="empty-state">
-              <BookOpen />
-              <p>No safety guides yet. Create one to link to disaster events.</p>
+            <div className="empty-state guide-empty-state">
+              <div className="empty-state-icon-wrap">
+                <BookOpen size={20} />
+              </div>
+              <h3>No safety guides available</h3>
+              <p>Preparedness guidance will appear here once guides are added.</p>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
+                <PlusCircle size={14} /> Create Safety Guide
+              </button>
             </div>
           ) : (
             <div className="table-wrap">
-              <table>
+              <table className="guide-table">
                 <thead>
                   <tr>
                     <th>Title</th>
@@ -143,21 +285,23 @@ export default function GuidesPage() {
                 <tbody>
                   {guides.map(g => (
                     <tr key={g._id}>
-                      <td style={{ fontWeight: 500 }}>{g.title}</td>
-                      <td>{g.disasterType}</td>
-                      <td style={{ textTransform: 'uppercase', fontSize: 12, color: 'var(--grey-600)' }}>
-                        {g.language}
+                      <td className="guide-title-cell">
+                        <div className="guide-title-main">{g.title}</div>
                       </td>
-                      <td style={{ color: 'var(--grey-500)' }}>{g.steps.length} steps</td>
-                      <td style={{ color: 'var(--grey-400)', fontSize: 12 }}>v{g.version}</td>
+                      <td><span className={`disaster-badge disaster-badge--${getDisasterBadgeTone(g.disasterType)}`}>{g.disasterType}</span></td>
+                      <td><span className="language-badge">{String(g.language || 'en').toUpperCase()}</span></td>
+                      <td className="steps-cell">
+                        <span className="steps-meta"><BookOpen size={12} /> {g.steps.length} steps</span>
+                      </td>
+                      <td><span className="version-badge">v{g.version}</span></td>
                       <td>
-                        <span className={`status-badge ${g.isPublished ? 'active' : 'retracted'}`}>
-                          {g.isPublished ? 'Yes' : 'No'}
+                        <span className={`published-badge ${g.isPublished ? 'published' : 'draft'}`}>
+                          <span className="published-dot" />
+                          {g.isPublished ? 'Published' : 'Draft'}
                         </span>
                       </td>
-                      <td>
-                        <button className="btn btn-ghost btn-icon btn-sm"
-                          onClick={() => handleDelete(g._id)} title="Delete">
+                      <td className="table-actions-cell">
+                        <button className="table-delete-btn" onClick={() => handleDelete(g._id)} title={`Delete ${g.title}`} aria-label={`Delete ${g.title}`}>
                           <Trash2 size={14} />
                         </button>
                       </td>
@@ -170,17 +314,16 @@ export default function GuidesPage() {
         </div>
       </div>
 
-      {/* ── Create Guide Modal ─────────────────────────────────────────────── */}
       {showForm && (
         <div className="modal-overlay">
           <div className="modal" style={{ maxWidth: 560 }}>
             <div className="modal-header">
               <h2>New Safety Guide</h2>
-              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { setShowForm(false); setError(''); }}>✕</button>
+              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => { setShowForm(false); setFormError(''); }}>✕</button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                {error && <div className="alert alert-error" style={{ marginBottom: 12 }}>{error}</div>}
+                {formError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{formError}</div>}
 
                 <div className="form-row">
                   <div className="form-group">

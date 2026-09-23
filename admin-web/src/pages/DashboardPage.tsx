@@ -54,28 +54,28 @@ export default function DashboardPage() {
       label: 'Active Events',
       value: loading ? '—' : String(events.length),
       context: 'currently live',
-      accent: 'orange',
+      accent: 'active',
       icon: <AlertTriangle size={14} />,
     },
     {
       label: 'Alerts Sent',
       value: loading ? '—' : sentCount.toLocaleString(),
       context: `${failCount} failed deliveries`,
-      accent: 'navy',
+      accent: 'alerts',
       icon: <ShieldCheck size={14} />,
     },
     {
       label: 'Last 24 h Pushes',
       value: loading ? '—' : last24h.toLocaleString(),
       context: 'push notifications',
-      accent: 'green',
+      accent: 'pushes',
       icon: <CircleDashed size={14} />,
     },
     {
       label: 'Total Alert Logs',
       value: loading ? '—' : logTotal.toLocaleString(),
       context: `${critCount} critical severity`,
-      accent: 'slate',
+      accent: 'logs',
       icon: <FileText size={14} />,
     },
   ];
@@ -95,9 +95,12 @@ export default function DashboardPage() {
       <div className="page-content dashboard-content">
         <div className="stats-grid">
           {summaryCards.map((card) => (
-            <div key={card.label} className={`stat-card stat-card--${card.accent}`}>
+            <div
+              key={card.label}
+              className={`stat-card kpi-card kpi-card--${card.accent}`}
+            >
               <div className="stat-card-header">
-                <span className="stat-indicator">{card.icon}</span>
+                <span className={`stat-indicator kpi-icon kpi-icon--${card.accent}`}>{card.icon}</span>
                 <span className="stat-label">{card.label}</span>
               </div>
               <div className="stat-value">{card.value}</div>
