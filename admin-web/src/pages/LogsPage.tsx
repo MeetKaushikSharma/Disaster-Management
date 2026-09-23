@@ -1,23 +1,23 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { RefreshCw, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RefreshCw, FileText, ChevronLeft, ChevronRight, Clock3, CheckCircle2, XCircle, Activity, Check } from 'lucide-react';
 import { getLogs, getLogStats } from '../api/services';
 import type { AlertLog, AlertStats } from '../types';
 
 const STATUS_FILTERS = [
-  { label: 'All',    value: '' },
-  { label: 'Sent',   value: 'sent' },
+  { label: 'All', value: '' },
+  { label: 'Sent', value: 'sent' },
   { label: 'Failed', value: 'failed' },
-  { label: 'Pending',value: 'pending' },
+  { label: 'Pending', value: 'pending' },
 ];
 
 export default function LogsPage() {
-  const [logs,    setLogs]    = useState<AlertLog[]>([]);
-  const [stats,   setStats]   = useState<AlertStats | null>(null);
-  const [status,  setStatus]  = useState('');
-  const [page,    setPage]    = useState(1);
-  const [pages,   setPages]   = useState(1);
-  const [total,   setTotal]   = useState(0);
+  const [logs, setLogs] = useState<AlertLog[]>([]);
+  const [stats, setStats] = useState<AlertStats | null>(null);
+  const [status, setStatus] = useState('');
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const load = () => {
@@ -25,36 +25,82 @@ export default function LogsPage() {
     Promise.all([
       getLogs({ page, limit: 25, ...(status && { status }) }),
       getLogStats(),
-    ]).then(([logRes, statsRes]) => {
-      setLogs(logRes.data.logs);
-      setPages(logRes.data.pages);
-      setTotal(logRes.data.total);
-      setStats(statsRes.data.stats);
-    }).finally(() => setLoading(false));
+    ])
+      .then(([logRes, statsRes]) => {
+        setLogs(logRes.data.logs);
+        setPages(logRes.data.pages);
+        setTotal(logRes.data.total);
+        setStats(statsRes.data.stats);
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, [status, page]);
 
+  const summaryCards = stats ? [
+    {
+      key: 'pending',
+      label: 'Pending',
+      value: stats.delivery.pending,
+      helper: 'waiting for delivery',
+      accent: 'pending',
+      icon: Clock3,
+    },
+    {
+      key: 'sent',
+      label: 'Sent',
+      value: stats.delivery.sent,
+      helper: 'successfully delivered',
+      accent: 'sent',
+      icon: CheckCircle2,
+    },
+    {
+      key: 'failed',
+      label: 'Failed',
+      value: stats.delivery.failed,
+      helper: 'delivery failures',
+      accent: 'failed',
+      icon: XCircle,
+    },
+    {
+      key: 'recent',
+      label: 'Last 24 h',
+      value: stats.last24hAlerts,
+      helper: 'notification activity',
+      accent: 'recent',
+      icon: Activity,
+    },
+  ] : [];
+
   return (
     <>
       <div className="topbar">
-        <span className="topbar-title">Alert Logs ({total.toLocaleString()})</span>
-        <button className="btn btn-ghost btn-icon btn-sm" onClick={load}><RefreshCw size={14} /></button>
+        <div className="topbar-title-wrap">
+          <span className="topbar-title">
+            Alert Logs <span className="topbar-count">({total.toLocaleString()})</span>
+          </span>
+          <span className="topbar-subtitle">Delivery and notification audit trail</span>
+        </div>
+        <button className="btn btn-ghost btn-icon btn-sm" onClick={load} aria-label="Refresh alert logs">
+          <RefreshCw size={14} />
+        </button>
       </div>
 
       <div className="page-content">
         {stats && (
-          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', marginBottom: 20 }}>
-            {Object.entries(stats.delivery).map(([k, v]) => (
-              <div className="stat-card" key={k}>
-                <div className="stat-label">{k}</div>
-                <div className="stat-value">{(v as number).toLocaleString()}</div>
+          <div className="stats-grid logs-kpis">
+            {summaryCards.map(({ key, label, value, helper, accent, icon: Icon }) => (
+              <div key={key} className={`stat-card log-kpi log-kpi--${accent}`}>
+                <div className="stat-card-header">
+                  <span className={`stat-indicator log-kpi__icon log-kpi__icon--${accent}`}>
+                    <Icon size={14} />
+                  </span>
+                  <span className="stat-label">{label}</span>
+                </div>
+                <div className="stat-value">{value.toLocaleString()}</div>
+                <div className="stat-sub">{helper}</div>
               </div>
             ))}
-            <div className="stat-card">
-              <div className="stat-label">Last 24 h</div>
-              <div className="stat-value">{stats.last24hAlerts.toLocaleString()}</div>
-            </div>
           </div>
         )}
 
@@ -70,12 +116,18 @@ export default function LogsPage() {
           </div>
 
           <div className="toolbar-actions wrap">
-            {STATUS_FILTERS.map(f => (
-              <button key={f.value} className={`btn btn-sm ${status === f.value ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => { setStatus(f.value); setPage(1); }}>
-                {f.label}
-              </button>
-            ))}
+            {STATUS_FILTERS.map((filter) => {
+              const isActive = status === filter.value;
+              return (
+                <button
+                  key={filter.value || 'all'}
+                  className={`filter-pill filter-pill--${filter.value || 'all'} ${isActive ? 'is-active' : ''}`}
+                  onClick={() => { setStatus(filter.value); setPage(1); }}
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -102,33 +154,43 @@ export default function LogsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.map(log => (
+                  {logs.map((log) => (
                     <tr key={log._id}>
-                      <td style={{ maxWidth: 180 }}>
-                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500, fontSize: 12 }}>
-                          {log.eventId?.title ?? '—'}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--grey-400)' }}>{log.eventId?.type}</div>
+                      <td className="event-cell">
+                        <div className="event-cell__title">{log.eventId?.title ?? '—'}</div>
+                        <div className="event-cell__meta">{log.eventId?.type ?? '—'}</div>
                       </td>
                       <td>
-                        <div style={{ fontSize: 12, fontWeight: 500 }}>{log.userId?.name ?? '—'}</div>
-                        <div style={{ fontSize: 11, color: 'var(--grey-400)' }}>{log.userId?.phone}</div>
+                        <div className="user-cell__name">{log.userId?.name ?? '—'}</div>
+                        <div className="user-cell__meta">{log.userId?.phone ?? '—'}</div>
                       </td>
-                      <td><span className={`severity-badge ${log.severityAtSend}`}>{log.severityAtSend}</span></td>
                       <td>
-                        <span className={`status-badge ${log.deliveryStatus === 'sent' ? 'active' : log.deliveryStatus === 'failed' ? 'retracted' : 'expired'}`}>
+                        <span className={`severity-badge severity-badge--${String(log.severityAtSend).toLowerCase()}`}>
+                          {log.severityAtSend}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`status-badge status-badge--${log.deliveryStatus}`}>
                           {log.deliveryStatus}
                         </span>
                       </td>
-                      <td style={{ color: 'var(--grey-500)', fontSize: 12 }}>
-                        {log.acknowledgedAt ? format(new Date(log.acknowledgedAt), 'd MMM, HH:mm') : '—'}
+                      <td>
+                        {log.acknowledgedAt ? (
+                          <span className="ack-badge ack-badge--acknowledged">
+                            <Check size={12} /> Acknowledged
+                          </span>
+                        ) : (
+                          <span className="ack-badge ack-badge--muted">Not acknowledged</span>
+                        )}
                       </td>
                       <td>
-                        {log.isRetraction
-                          ? <span className="status-badge retracted">retraction</span>
-                          : <span className="status-badge active">alert</span>}
+                        {log.isRetraction ? (
+                          <span className="type-badge type-badge--retraction">retraction</span>
+                        ) : (
+                          <span className="type-badge type-badge--alert">alert</span>
+                        )}
                       </td>
-                      <td style={{ color: 'var(--grey-500)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                      <td className="sent-at-cell">
                         {format(new Date(log.sentAt), 'd MMM yy, HH:mm')}
                       </td>
                     </tr>
@@ -141,12 +203,12 @@ export default function LogsPage() {
           {pages > 1 && (
             <div className="pagination">
               <button className="btn btn-secondary btn-sm btn-icon"
-                onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
                 <ChevronLeft size={14} />
               </button>
-              <span style={{ fontSize: 13, color: 'var(--grey-500)', padding: '0 8px' }}>{page} / {pages}</span>
+              <span className="pagination-meta">{page} / {pages}</span>
               <button className="btn btn-secondary btn-sm btn-icon"
-                onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages}>
+                onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page === pages}>
                 <ChevronRight size={14} />
               </button>
             </div>
