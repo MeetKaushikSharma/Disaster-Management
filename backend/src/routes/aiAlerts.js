@@ -117,16 +117,14 @@ router.post(
 
       const targetStatus = req.body.targetStatus || 'pending_approval';
 
-      // Default district coordinates mapping for northern India / UP
+      // Default district coordinates mapping for Delhi-NCR
       const DISTRICT_COORDS = {
-        Varanasi: [82.9739, 25.3176],
-        Gorakhpur: [83.3732, 26.7606],
-        Prayagraj: [81.8463, 25.4358],
-        Lucknow: [80.9462, 26.8467],
-        Ayodhya: [82.1998, 26.7922],
-        Kanpur: [80.3319, 26.4499],
-        Mirzapur: [82.5644, 25.1337],
-        Ballia: [84.1497, 25.7582],
+        Delhi: [77.2090, 28.6139],
+        Noida: [77.3910, 28.5355],
+        Ghaziabad: [77.4538, 28.6692],
+        Faridabad: [77.3178, 28.4089],
+        Gurugram: [77.0266, 28.4595],
+        'Gautam Buddha Nagar': [77.5040, 28.4744],
       };
 
       const centreCoords = aiAlert.suggestedCentre && aiAlert.suggestedCentre.length === 2

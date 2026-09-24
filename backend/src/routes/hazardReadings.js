@@ -105,18 +105,26 @@ router.get(
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/district-summary', async (req, res, next) => {
   try {
-    const districts = [
-      'Varanasi',
-      'Gorakhpur',
-      'Prayagraj',
-      'Lucknow',
-      'Ayodhya',
-      'Kanpur',
-      'Mirzapur',
-      'Ballia',
+    // Delhi-NCR districts tracked by the OpenWeatherMap-backed AI service
+    const NCR_DISTRICTS = [
+      'Delhi',
+      'Noida',
+      'Ghaziabad',
+      'Faridabad',
+      'Gurugram',
+      'Gautam Buddha Nagar',
     ];
 
-    const targetDistricts = req.query.district ? [req.query.district] : districts;
+    const NCR_STATES = {
+      Delhi: 'Delhi',
+      Noida: 'Uttar Pradesh',
+      Ghaziabad: 'Uttar Pradesh',
+      Faridabad: 'Haryana',
+      Gurugram: 'Haryana',
+      'Gautam Buddha Nagar': 'Uttar Pradesh',
+    };
+
+    const targetDistricts = req.query.district ? [req.query.district] : NCR_DISTRICTS;
 
     const summaries = await Promise.all(
       targetDistricts.map(async (dist) => {
@@ -128,7 +136,7 @@ router.get('/district-summary', async (req, res, next) => {
 
         return {
           district: dist,
-          state: 'Uttar Pradesh',
+          state: NCR_STATES[dist] || 'Delhi NCR',
           rainfall: latestRain ? { value: latestRain.value, unit: 'mm', timestamp: latestRain.timestamp, isAnomaly: latestRain.isAnomaly } : null,
           riverLevel: latestRiver ? {
             value: latestRiver.value,

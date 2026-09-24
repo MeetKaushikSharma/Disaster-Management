@@ -148,10 +148,10 @@ export default function AiAnomalyHubPage() {
             <div>
               <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
                 <Activity size={18} color="var(--grey-700)" />
-                Regional Telemetry Overview (Uttar Pradesh Basin)
+                Regional Telemetry Overview (Delhi NCR Region)
               </h2>
               <p style={{ margin: '4px 0 0 0', fontSize: 12, color: 'var(--grey-500)' }}>
-                Live observations from IMD automatic weather stations & Central Water Commission (CWC) river gauges
+                Live observations from OpenWeatherMap (OWM) — Noida, Ghaziabad, Faridabad, Gurugram, Gautam Buddha Nagar & Delhi
               </p>
             </div>
           </div>

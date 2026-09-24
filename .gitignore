@@ -1,2 +1,8 @@
-".env" 
-".env.*" 
+.env
+.env.*
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+.pytest_cache/

@@ -27,6 +27,10 @@ const DATA_SOURCES = [
   'FIELD_RESEARCHER',
   'SIMULATED',
   'TEST_SUITE',
+  'OWM',
+  'IMD+OWM',
+  'CWC+OWM',
+  'OPENWEATHER',
 ];
 
 const hazardReadingSchema = new mongoose.Schema(
