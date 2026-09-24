@@ -147,6 +147,8 @@ router.post(
         type: aiAlert.hazardType,
         severity: aiAlert.recommendedSeverity || 'Watch',
         description,
+        targetStates: [aiAlert.state],
+        targetDistricts: [aiAlert.district],
         state: aiAlert.state,
         district: aiAlert.district,
         translations: {

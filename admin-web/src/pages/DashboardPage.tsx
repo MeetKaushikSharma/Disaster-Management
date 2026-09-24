@@ -149,7 +149,15 @@ export default function DashboardPage() {
                   <tbody>
                     {events.map((event) => (
                       <tr key={event._id}>
-                        <td className="event-title-cell">{event.title}</td>
+                        <td className="event-title-cell">
+                          <div>{event.title}</div>
+                          <div style={{ fontSize: 11, color: 'var(--grey-500)', marginTop: 2 }}>
+                            📍 {event.targetStates?.length ? event.targetStates.join(', ') : (event.state || 'India')}
+                            {event.targetDistricts && event.targetDistricts.length > 0 && (
+                              <span> · {event.targetDistricts.length <= 2 ? event.targetDistricts.join(', ') : `${event.targetDistricts.slice(0, 2).join(', ')} +${event.targetDistricts.length - 2} more`}</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="muted-cell">{event.type}</td>
                         <td>
                           <span className={`severity-badge ${event.severity}`}>{event.severity}</span>

@@ -357,23 +357,24 @@ export default function GuidesPage() {
                         </span>
                       </td>
                       <td className="table-actions-cell" onClick={e => e.stopPropagation()}>
-                        <button
-                          className="btn btn-ghost btn-icon btn-sm"
-                          onClick={(e) => { e.stopPropagation(); setViewingGuide(g); }}
-                          title={`View ${g.title}`}
-                          aria-label={`View ${g.title}`}
-                          style={{ marginRight: 6 }}
-                        >
-                          <Eye size={15} />
-                        </button>
-                        <button
-                          className="table-delete-btn"
-                          onClick={(e) => { e.stopPropagation(); handleDelete(g._id); }}
-                          title={`Delete ${g.title}`}
-                          aria-label={`Delete ${g.title}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <div className="guide-actions-wrapper">
+                          <button
+                            className="guide-action-btn guide-action-btn--view"
+                            onClick={(e) => { e.stopPropagation(); setViewingGuide(g); }}
+                            title={`View ${g.title}`}
+                            aria-label={`View ${g.title}`}
+                          >
+                            <Eye size={15} />
+                          </button>
+                          <button
+                            className="guide-action-btn guide-action-btn--delete"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(g._id); }}
+                            title={`Delete ${g.title}`}
+                            aria-label={`Delete ${g.title}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

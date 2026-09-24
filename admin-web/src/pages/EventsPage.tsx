@@ -193,7 +193,12 @@ export default function EventsPage() {
                     <tr key={ev._id}>
                       <td className="events-title-cell">
                         <div className="events-primary-title">{ev.title}</div>
-                        {ev.type && <div className="events-secondary-type">{ev.type}</div>}
+                        <div style={{ fontSize: 11, color: 'var(--grey-500)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span>📍 {ev.targetStates?.length ? ev.targetStates.join(', ') : (ev.state || 'India')}</span>
+                          {ev.targetDistricts && ev.targetDistricts.length > 0 && (
+                            <span> · {ev.targetDistricts.length <= 2 ? ev.targetDistricts.join(', ') : `${ev.targetDistricts.slice(0, 2).join(', ')} +${ev.targetDistricts.length - 2} more`}</span>
+                          )}
+                        </div>
                         {ev.correctionMessage && (
                           <div className="events-correction-note">
                             ↩ {ev.correctionMessage}

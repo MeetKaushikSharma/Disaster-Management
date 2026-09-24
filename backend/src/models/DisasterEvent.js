@@ -109,6 +109,16 @@ const disasterEventSchema = new mongoose.Schema(
     },
 
     // ── Regional / Administrative Targeting (India) ───────────────────────────
+    targetStates: {
+      type: [String],
+      default: ['Uttar Pradesh'],
+    },
+
+    targetDistricts: {
+      type: [String],
+      default: ['Varanasi'],
+    },
+
     state: {
       type: String,
       trim: true,
@@ -242,11 +252,31 @@ const disasterEventSchema = new mongoose.Schema(
 // ── Indexes ───────────────────────────────────────────────────────────────────
 disasterEventSchema.index({ status: 1, createdAt: -1 });
 disasterEventSchema.index({ type: 1, severity: 1 });
+disasterEventSchema.index({ targetStates: 1, status: 1 });
+disasterEventSchema.index({ targetDistricts: 1, status: 1 });
 disasterEventSchema.index({ state: 1, district: 1, status: 1 });
 disasterEventSchema.index({ 'centre': '2dsphere' }); // geospatial queries on radius events
 
-// ── Validation: ensure the correct zone fields are present ────────────────────
+// ── Validation: ensure zone fields and sync state/district arrays ────────────
 disasterEventSchema.pre('validate', function (next) {
+  // Sync targetStates and state for backward compatibility
+  if (Array.isArray(this.targetStates) && this.targetStates.length > 0) {
+    if (!this.state || this.state === 'Uttar Pradesh') {
+      this.state = this.targetStates[0];
+    }
+  } else if (this.state) {
+    this.targetStates = [this.state];
+  }
+
+  // Sync targetDistricts and district for backward compatibility
+  if (Array.isArray(this.targetDistricts) && this.targetDistricts.length > 0) {
+    if (!this.district || this.district === 'Varanasi') {
+      this.district = this.targetDistricts[0];
+    }
+  } else if (this.district) {
+    this.targetDistricts = [this.district];
+  }
+
   if (this.zoneType === 'polygon') {
     if (!this.polygon || !this.polygon.coordinates) {
       return next(new Error('polygon.coordinates are required when zoneType is "polygon"'));
@@ -260,6 +290,16 @@ disasterEventSchema.pre('validate', function (next) {
     }
   }
   next();
+});
+
+// Post-init hook: Ensure old documents loaded from DB have targetStates and targetDistricts arrays populated
+disasterEventSchema.post('init', function () {
+  if ((!this.targetStates || this.targetStates.length === 0) && this.state) {
+    this.targetStates = [this.state];
+  }
+  if ((!this.targetDistricts || this.targetDistricts.length === 0) && this.district) {
+    this.targetDistricts = [this.district];
+  }
 });
 
 // ── Virtual: is the event currently active? ───────────────────────────────────

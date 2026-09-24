@@ -175,6 +175,55 @@ describe('Disaster Event routes', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('POST /api/events — creates multi-state and multi-district event', async () => {
+    const multiPayload = {
+      title: 'Regional Cyclone Warning',
+      type: 'Cyclone',
+      severity: 'Critical',
+      targetStates: ['Odisha', 'Andhra Pradesh', 'West Bengal'],
+      targetDistricts: ['Puri', 'Ganjam', 'Srikakulam', 'Visakhapatnam', 'South 24 Parganas'],
+      zoneType: 'radius',
+      centre: { type: 'Point', coordinates: [85.83, 19.81] },
+      radiusKm: 150,
+      description: 'Severe cyclonic storm approaching eastern coastline.',
+    };
+
+    const res = await request(app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send(multiPayload);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.event.targetStates).toEqual(['Odisha', 'Andhra Pradesh', 'West Bengal']);
+    expect(res.body.event.targetDistricts).toEqual(['Puri', 'Ganjam', 'Srikakulam', 'Visakhapatnam', 'South 24 Parganas']);
+    expect(res.body.event.state).toBe('Odisha'); // backward compatibility
+    expect(res.body.event.district).toBe('Puri'); // backward compatibility
+  });
+
+  it('POST /api/events — maintains backward compatibility for legacy single state and district payload', async () => {
+    const legacyPayload = {
+      title: 'Legacy Single District Alert',
+      type: 'Flood',
+      severity: 'Medium',
+      state: 'Bihar',
+      district: 'Patna',
+      zoneType: 'radius',
+      centre: { type: 'Point', coordinates: [85.13, 25.6] },
+      radiusKm: 20,
+    };
+
+    const res = await request(app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send(legacyPayload);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.event.state).toBe('Bihar');
+    expect(res.body.event.district).toBe('Patna');
+    expect(res.body.event.targetStates).toEqual(['Bihar']);
+    expect(res.body.event.targetDistricts).toEqual(['Patna']);
+  });
+
   it('GET /api/events — lists active events', async () => {
     await request(app)
       .post('/api/events')

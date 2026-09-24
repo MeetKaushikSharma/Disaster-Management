@@ -85,7 +85,7 @@ router.get('/cap.json', async (req, res, next) => {
               : 'Follow local authority directives and move to safe higher ground if ordered.',
             area: [
               {
-                areaDesc: `${ev.district || 'District'}, ${ev.state || 'State'}`,
+                areaDesc: `${(ev.targetDistricts && ev.targetDistricts.length) ? ev.targetDistricts.join(', ') : (ev.district || 'District')}, ${(ev.targetStates && ev.targetStates.length) ? ev.targetStates.join(', ') : (ev.state || 'State')}`,
                 ...(ev.zoneType === 'radius' && ev.centre
                   ? { circle: `${ev.centre.coordinates[1]},${ev.centre.coordinates[0]} ${ev.radiusKm || 10}` }
                   : {}),
@@ -106,7 +106,7 @@ router.get('/cap.json', async (req, res, next) => {
                   certainty: ev.certainty || 'Likely',
                   headline: ev.translations.hi.title,
                   description: ev.translations.hi.description,
-                  area: [{ areaDesc: `${ev.district || 'जिला'}, ${ev.state || 'राज्य'}` }],
+                  area: [{ areaDesc: `${(ev.targetDistricts && ev.targetDistricts.length) ? ev.targetDistricts.join(', ') : (ev.district || 'जिला')}, ${(ev.targetStates && ev.targetStates.length) ? ev.targetStates.join(', ') : (ev.state || 'राज्य')}` }],
                 },
               ]
             : []),
@@ -139,7 +139,9 @@ router.get('/cap.xml', async (req, res, next) => {
         const sent = ev.createdAt.toISOString();
         const expires = ev.expiresAt ? `<expires>${ev.expiresAt.toISOString()}</expires>` : '';
 
-        let areaXml = `<areaDesc>${ev.district || 'All'}, ${ev.state || 'India'}</areaDesc>`;
+        const distStr = (ev.targetDistricts && ev.targetDistricts.length) ? ev.targetDistricts.join(', ') : (ev.district || 'All');
+        const stateStr = (ev.targetStates && ev.targetStates.length) ? ev.targetStates.join(', ') : (ev.state || 'India');
+        let areaXml = `<areaDesc>${distStr}, ${stateStr}</areaDesc>`;
         if (ev.zoneType === 'radius' && ev.centre) {
           areaXml += `<circle>${ev.centre.coordinates[1]},${ev.centre.coordinates[0]} ${ev.radiusKm || 10}</circle>`;
         } else if (ev.zoneType === 'polygon' && ev.polygon) {

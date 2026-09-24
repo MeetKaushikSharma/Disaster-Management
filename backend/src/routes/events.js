@@ -43,6 +43,8 @@ const eventBodyValidators = [
   body('expiresAt').optional().isISO8601().withMessage('expiresAt must be an ISO8601 date'),
   body('state').optional().trim(),
   body('district').optional().trim(),
+  body('targetStates').optional().isArray().withMessage('targetStates must be an array of state names'),
+  body('targetDistricts').optional().isArray().withMessage('targetDistricts must be an array of district names'),
   body('status').optional().isIn(DisasterEvent.EVENT_STATUSES || ['draft', 'pending_approval', 'approved', 'published', 'active', 'retracted', 'expired', 'cancelled']),
 ];
 
@@ -60,8 +62,16 @@ router.post(
         title, type, severity, description, zoneType,
         polygon, centre, radiusKm, bufferRadiusKm,
         safetyGuideId, expiresAt, state, district,
+        targetStates, targetDistricts,
         translations, status = 'active', capIdentifier,
       } = req.body;
+
+      const resolvedStates = (Array.isArray(targetStates) && targetStates.length > 0)
+        ? targetStates
+        : (state ? [state] : ['Uttar Pradesh']);
+      const resolvedDistricts = (Array.isArray(targetDistricts) && targetDistricts.length > 0)
+        ? targetDistricts
+        : (district ? [district] : ['Varanasi']);
 
       const event = await DisasterEvent.create({
         title, type, severity, description, zoneType,
@@ -69,8 +79,10 @@ router.post(
         bufferRadiusKm: bufferRadiusKm ?? Number(process.env.DEFAULT_BUFFER_RADIUS_KM ?? 5),
         safetyGuideId,
         expiresAt,
-        state: state || 'Uttar Pradesh',
-        district: district || 'Varanasi',
+        targetStates: resolvedStates,
+        targetDistricts: resolvedDistricts,
+        state: resolvedStates[0],
+        district: resolvedDistricts[0],
         translations: translations || {},
         status,
         capIdentifier,
@@ -112,6 +124,7 @@ router.get(
   [
     query('limit').optional().isInt({ min: 1, max: 50 }),
     query('district').optional().isString(),
+    query('state').optional().isString(),
   ],
   validate,
   async (req, res, next) => {
@@ -122,7 +135,25 @@ router.get(
       };
 
       if (req.query.district) {
-        filter.district = req.query.district;
+        filter.$or = [
+          { targetDistricts: req.query.district },
+          { district: req.query.district },
+        ];
+      }
+
+      if (req.query.state) {
+        const stateClause = {
+          $or: [
+            { targetStates: req.query.state },
+            { state: req.query.state },
+          ],
+        };
+        if (filter.$or) {
+          filter.$and = [{ $or: filter.$or }, stateClause];
+          delete filter.$or;
+        } else {
+          filter.$or = stateClause.$or;
+        }
       }
 
       const events = await DisasterEvent.find(filter)
@@ -152,6 +183,7 @@ router.get(
       'approved', 'retracted', 'expired', 'cancelled', 'all',
     ]),
     query('district').optional().isString(),
+    query('state').optional().isString(),
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 }),
   ],
@@ -168,7 +200,24 @@ router.get(
         filter.status = status === 'active' ? { $in: ['active', 'published'] } : status;
       }
       if (req.query.district) {
-        filter.district = req.query.district;
+        filter.$or = [
+          { targetDistricts: req.query.district },
+          { district: req.query.district },
+        ];
+      }
+      if (req.query.state) {
+        const stateClause = {
+          $or: [
+            { targetStates: req.query.state },
+            { state: req.query.state },
+          ],
+        };
+        if (filter.$or) {
+          filter.$and = [{ $or: filter.$or }, stateClause];
+          delete filter.$or;
+        } else {
+          filter.$or = stateClause.$or;
+        }
       }
 
       const [events, total] = await Promise.all([
@@ -232,13 +281,24 @@ router.put(
     body('description').optional().trim().isLength({ max: 2000 }),
     body('expiresAt').optional().isISO8601(),
     body('bufferRadiusKm').optional().isFloat({ min: 0, max: 100 }),
+    body('targetStates').optional().isArray(),
+    body('targetDistricts').optional().isArray(),
+    body('state').optional().trim(),
+    body('district').optional().trim(),
   ],
   validate,
   async (req, res, next) => {
     try {
-      const allowed = ['title', 'severity', 'description', 'safetyGuideId', 'expiresAt', 'bufferRadiusKm'];
+      const allowed = ['title', 'severity', 'description', 'safetyGuideId', 'expiresAt', 'bufferRadiusKm', 'targetStates', 'targetDistricts', 'state', 'district'];
       const updates = {};
       allowed.forEach((k) => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
+
+      if (updates.targetStates && Array.isArray(updates.targetStates) && updates.targetStates.length > 0) {
+        updates.state = updates.targetStates[0];
+      }
+      if (updates.targetDistricts && Array.isArray(updates.targetDistricts) && updates.targetDistricts.length > 0) {
+        updates.district = updates.targetDistricts[0];
+      }
 
       const event = await DisasterEvent.findByIdAndUpdate(
         req.params.id,

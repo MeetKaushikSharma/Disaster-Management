@@ -60,6 +60,8 @@ export interface DisasterEvent {
   description?: string;
   state?: string;
   district?: string;
+  targetStates?: string[];
+  targetDistricts?: string[];
   translations?: {
     hi?: { title: string; description: string };
   };

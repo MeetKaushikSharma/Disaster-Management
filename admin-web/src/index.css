@@ -2328,6 +2328,10 @@ tbody td {
   text-transform: uppercase;
 }
 
+.guide-table thead th:last-child {
+  text-align: center;
+}
+
 .guide-table tbody tr {
   border-bottom: 1px solid #eef2f7;
   transition: background-color 0.18s ease;
@@ -2341,6 +2345,11 @@ tbody td {
   padding: 14px 14px;
   vertical-align: middle;
   color: #0f172a;
+}
+
+.guide-table tbody td:last-child {
+  text-align: center;
+  vertical-align: middle;
 }
 
 .guide-title-cell {
@@ -2448,29 +2457,67 @@ tbody td {
 }
 
 .table-actions-cell {
-  width: 44px;
-  text-align: right;
+  width: 112px;
+  text-align: center;
+  vertical-align: middle;
 }
 
-.table-delete-btn {
+.guide-actions-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  height: 100%;
+}
+
+.guide-action-btn {
   width: 32px;
   height: 32px;
+  padding: 0;
+  margin: 0;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  color: #64748b;
+  color: #475569;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.table-delete-btn:hover,
-.table-delete-btn:focus-visible {
+.guide-action-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.guide-action-btn:hover,
+.guide-action-btn:focus-visible {
+  outline: none;
+}
+
+.guide-action-btn--view {
+  color: #0b2a4a;
+}
+
+.guide-action-btn--view:hover,
+.guide-action-btn--view:focus-visible {
+  background: rgba(11, 42, 74, 0.06);
+  border-color: rgba(11, 42, 74, 0.09);
+}
+
+.guide-action-btn--delete {
+  color: #64748b;
+}
+
+.guide-action-btn--delete:hover,
+.guide-action-btn--delete:focus-visible {
   background: rgba(217, 45, 32, 0.08);
   border-color: rgba(217, 45, 32, 0.12);
   color: #b42318;
-  outline: none;
 }
 
 .guide-empty-state {
@@ -2644,3 +2691,453 @@ tbody td {
 /* Leaflet draw overrides to match B&W theme */
 .leaflet-draw-toolbar a { background-color: var(--white) !important; border-color: var(--grey-300) !important; color: var(--black) !important; }
 .leaflet-draw-toolbar a:hover { background-color: var(--grey-100) !important; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Administrative Geographic Targeting (Multi-State & Multi-District)
+───────────────────────────────────────────────────────────────────────────── */
+.admin-target-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-target-field-card {
+  position: relative;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 14px 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.admin-target-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.admin-target-header-row .form-label {
+  margin-bottom: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #1e293b;
+  text-transform: uppercase;
+}
+
+.admin-target-counter {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #ffffff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-chips-input-box {
+  min-height: 44px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-chips-input-box:focus-within {
+  border-color: #0b2a4a;
+  box-shadow: 0 0 0 2px rgba(11, 42, 74, 0.12);
+}
+
+.admin-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  animation: fadeInChip 0.15s ease-out;
+  transition: all 0.15s ease;
+}
+
+@keyframes fadeInChip {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.admin-chip--state {
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.admin-chip--state:hover {
+  background: #e2e8f0;
+}
+
+.admin-chip--district {
+  background: #eff6ff;
+  color: #1e3a8a;
+  border: 1px solid #bfdbfe;
+}
+
+.admin-chip--district:hover {
+  background: #dbeafe;
+}
+
+.admin-chip-label {
+  user-select: none;
+}
+
+.admin-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.65;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.admin-chip-remove:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* Add Button Trigger */
+.admin-dropdown-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.admin-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px dashed #94a3b8;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-add-btn:hover,
+.admin-add-btn.active {
+  border-style: solid;
+  border-color: #0b2a4a;
+  background: #0b2a4a;
+  color: #ffffff;
+}
+
+.admin-chevron {
+  transition: transform 0.2s ease;
+}
+
+.admin-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Menu Popup */
+.admin-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1050;
+  width: 320px;
+  max-width: 90vw;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeInMenu 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-dropdown-menu--districts {
+  width: 420px;
+}
+
+@keyframes fadeInMenu {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-dropdown-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.admin-search-icon {
+  color: #64748b;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.admin-dropdown-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: #0f172a;
+  outline: none;
+  padding: 2px 0;
+}
+
+.admin-dropdown-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.admin-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.admin-dropdown-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.admin-dropdown-empty {
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.admin-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1e293b;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.admin-dropdown-item:hover {
+  background-color: #f1f5f9;
+}
+
+.admin-dropdown-item.selected {
+  background-color: #f8fafc;
+}
+
+.admin-checkbox-custom {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #ffffff;
+  flex-shrink: 0;
+  transition: all 0.12s ease;
+}
+
+.admin-dropdown-item.selected .admin-checkbox-custom,
+.admin-district-item.selected .admin-checkbox-custom {
+  background: #0b2a4a;
+  border-color: #0b2a4a;
+}
+
+.admin-item-title {
+  flex: 1;
+  font-weight: 500;
+}
+
+.admin-item-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* Empty district banner */
+.admin-empty-district-banner {
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 12px;
+  color: #64748b;
+  text-align: center;
+}
+
+/* Grouped District Dropdown styles */
+.admin-district-groups-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.admin-district-group {
+  margin-bottom: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-district-group:last-child {
+  margin-bottom: 0;
+}
+
+.admin-district-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-group-state-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.admin-group-count {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: normal;
+}
+
+.admin-select-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.admin-select-all-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.admin-select-all-btn.all-selected {
+  background: #0b2a4a;
+  border-color: #0b2a4a;
+  color: #ffffff;
+}
+
+.admin-district-items-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  padding: 6px;
+}
+
+@media (max-width: 480px) {
+  .admin-district-items-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-district-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: #334155;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+  user-select: none;
+}
+
+.admin-district-item:hover {
+  background-color: #f8fafc;
+}
+
+.admin-district-item.selected {
+  background-color: #eff6ff;
+  color: #1e3a8a;
+  font-weight: 500;
+}
+
+.admin-district-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Subtle Summary Bar */
+.admin-target-summary-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #475569;
+  font-weight: 500;
+  align-self: flex-start;
+}
+
+.admin-summary-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff6a00;
+  flex-shrink: 0;
+}
+
+.admin-summary-text {
+  line-height: 1.4;
+}
+
