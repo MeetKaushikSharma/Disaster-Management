@@ -184,3 +184,14 @@ flutter run
 - **XML Feed**: `GET http://localhost:5000/api/feeds/cap.xml`
 - **JSON Feed**: `GET http://localhost:5000/api/feeds/cap.json`
 - **Live Browser Subscriber**: Open `http://localhost:5173/browser-alerts.html` to receive real-time web notifications.
+
+---
+
+## 🚀 Contribution
+
+| Name | Description |
+|---------|-------------|
+| [Harsh Anand →](https://github.com/HarshAnand143) | App Logo Design <br> Admin Web UI Design | 
+| [Kaushik Sharma →](https://github.com/MeetKaushikSharma) |  |
+| [Archit Agnihotri→](https://github.com/HarshAnand143) |  |
+| [Archit Agnihotri→](https://github.com/HarshAnand143) |  |
