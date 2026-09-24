@@ -14,6 +14,7 @@ import random
 import logging
 from datetime import datetime, timezone
 
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -81,6 +82,9 @@ DISTRICT_BASELINES = {
 
 def _fetch_owm_weather(city: str) -> dict | None:
     """Calls OWM Current Weather API and returns the raw JSON response."""
+    if not OWM_API_KEY:
+        logger.debug("[IMD Ingestor] OPENWEATHER_API_KEY not configured; using fallback baseline.")
+        return None
     try:
         resp = requests.get(
             OWM_BASE_URL,
@@ -163,22 +167,26 @@ class ImdIngestor:
 
             if owm_raw:
                 owm_fetched = True
-                main = owm_raw.get("main", {})
-                wind_data = owm_raw.get("wind", {})
-                rain_data = owm_raw.get("rain", {})
+                main = owm_raw.get("main") or {}
+                wind_data = owm_raw.get("wind") or {}
+                rain_data = owm_raw.get("rain") or {}
 
-                temp_val = round(main.get("temp", baseline["normal_temp"]), 1)
-                humidity = round(main.get("humidity", 65), 1)
+                raw_temp = main.get("temp")
+                temp_val = round(float(raw_temp if raw_temp is not None else baseline["normal_temp"]), 1)
+                raw_humidity = main.get("humidity")
+                humidity = round(float(raw_humidity if raw_humidity is not None else 65), 1)
 
                 # OWM wind is m/s → convert to km/h
-                wind = round(wind_data.get("speed", 10.0) * 3.6, 1)
+                raw_wind = wind_data.get("speed")
+                wind = round(float(raw_wind if raw_wind is not None else 10.0) * 3.6, 1)
 
                 # Rainfall — 1h or 3h (OWM only reports when it's actually raining)
-                rain_1h = rain_data.get("1h", 0.0)
-                rain_3h = rain_data.get("3h", 0.0)
+                rain_1h = float(rain_data.get("1h") or 0.0)
+                rain_3h = float(rain_data.get("3h") or 0.0)
                 rain_val = rain_1h  # Use 1h as primary indicator
 
-                weather_desc = owm_raw.get("weather", [{}])[0].get("description", "clear sky")
+                weather_list = owm_raw.get("weather") or []
+                weather_desc = weather_list[0].get("description", "clear sky") if weather_list else "clear sky"
                 imd_warning = _classify_imd_warning(rain_1h, rain_3h, wind)
             else:
                 # Fallback simulated baseline

@@ -14,6 +14,7 @@ import random
 import logging
 from datetime import datetime, timezone
 
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -106,6 +107,9 @@ RIVER_STATIONS = {
 
 def _fetch_owm_weather(city: str) -> dict | None:
     """Calls OWM Current Weather API and returns the JSON response."""
+    if not OWM_API_KEY:
+        logger.debug("[CWC Ingestor] OPENWEATHER_API_KEY not configured; using fallback baseline.")
+        return None
     try:
         resp = requests.get(
             OWM_BASE_URL,
@@ -134,9 +138,11 @@ def _gauge_from_weather(normal_level: float, warning_level: float, danger_level:
       - Capped at danger_level + 0.5 for realism.
     Returns (current_level_m, trend, rate_of_rise_m_per_hr).
     """
-    rain_1h = owm.get("rain", {}).get("1h", 0.0)
-    rain_3h = owm.get("rain", {}).get("3h", 0.0)
-    humidity = owm.get("main", {}).get("humidity", 60)
+    rain_data = owm.get("rain") or {}
+    main_data = owm.get("main") or {}
+    rain_1h = float(rain_data.get("1h") or 0.0)
+    rain_3h = float(rain_data.get("3h") or 0.0)
+    humidity = float(main_data.get("humidity") or 60)
 
     # Rainfall contribution to gauge rise
     rise_from_1h = max(0.0, (rain_1h - 5.0) * 0.08)
@@ -216,10 +222,13 @@ class CwcIngestor:
             owm_raw = _fetch_owm_weather(info["owm_city"])
             if owm_raw:
                 owm_fetched = True
-                rain_1h = owm_raw.get("rain", {}).get("1h", 0.0)
-                rain_3h = owm_raw.get("rain", {}).get("3h", 0.0)
-                humidity = owm_raw.get("main", {}).get("humidity", 60)
-                weather_desc = owm_raw.get("weather", [{}])[0].get("description", "clear")
+                rain_data = owm_raw.get("rain") or {}
+                main_data = owm_raw.get("main") or {}
+                rain_1h = float(rain_data.get("1h") or 0.0)
+                rain_3h = float(rain_data.get("3h") or 0.0)
+                humidity = float(main_data.get("humidity") or 60)
+                weather_list = owm_raw.get("weather") or []
+                weather_desc = weather_list[0].get("description", "clear") if weather_list else "clear"
                 current_level, trend, rate = _gauge_from_weather(
                     normal_level, warning_level, danger_level, owm_raw
                 )
