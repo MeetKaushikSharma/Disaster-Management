@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { PlusCircle, RefreshCw, BookOpen, Trash2, BookText, ShieldCheck, Languages, CheckCircle2, CircleDashed } from 'lucide-react';
+import {
+  PlusCircle, RefreshCw, BookOpen, Trash2, BookText, ShieldCheck,
+  Languages, CheckCircle2, CircleDashed, Eye, ZapOff, ArrowUp,
+  AlertTriangle, Droplets, PhoneCall, Shield, Home, Radio,
+  AlertCircle, Zap, ArrowDown, Compass, Flame, Sun, User,
+  Thermometer, Volume2, ArrowRight, AlertOctagon, Truck
+} from 'lucide-react';
 import { getGuides, createGuide, deleteGuide } from '../api/services';
 import type { SafetyGuide, DisasterType } from '../types';
 
@@ -21,6 +27,11 @@ const LANGUAGES = [
   { code: 'or', label: 'Odia' },
 ];
 
+const getLanguageLabel = (code: string) => {
+  const found = LANGUAGES.find(l => l.code === code);
+  return found ? found.label : String(code).toUpperCase();
+};
+
 const getDisasterBadgeTone = (type: string) => {
   const map: Record<string, string> = {
     Cyclone: 'cyclone',
@@ -38,6 +49,32 @@ const getDisasterBadgeTone = (type: string) => {
   return map[type] || 'other';
 };
 
+const getStepIcon = (slug?: string) => {
+  switch (slug) {
+    case 'zap-off': return <ZapOff size={16} />;
+    case 'arrow-up': return <ArrowUp size={16} />;
+    case 'alert-triangle': return <AlertTriangle size={16} />;
+    case 'droplets': return <Droplets size={16} />;
+    case 'phone-call': return <PhoneCall size={16} />;
+    case 'shield': return <Shield size={16} />;
+    case 'home': return <Home size={16} />;
+    case 'radio': return <Radio size={16} />;
+    case 'alert-circle': return <AlertCircle size={16} />;
+    case 'zap': return <Zap size={16} />;
+    case 'arrow-down': return <ArrowDown size={16} />;
+    case 'compass': return <Compass size={16} />;
+    case 'flame': return <Flame size={16} />;
+    case 'sun': return <Sun size={16} />;
+    case 'user': return <User size={16} />;
+    case 'thermometer': return <Thermometer size={16} />;
+    case 'volume-2': return <Volume2 size={16} />;
+    case 'arrow-right': return <ArrowRight size={16} />;
+    case 'alert-octagon': return <AlertOctagon size={16} />;
+    case 'truck': return <Truck size={16} />;
+    default: return null;
+  }
+};
+
 const emptyForm = () => ({
   disasterType: 'Flood' as DisasterType,
   language: 'en',
@@ -50,6 +87,7 @@ export default function GuidesPage() {
   const [guides, setGuides] = useState<SafetyGuide[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [viewingGuide, setViewingGuide] = useState<SafetyGuide | null>(null);
   const [form, setForm] = useState(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
@@ -62,13 +100,20 @@ export default function GuidesPage() {
   const load = () => {
     setLoading(true);
     setLoadError('');
-    getGuides(filterType ? { disasterType: filterType } : {})
+
+    const params: { disasterType?: string; language?: string; published?: boolean } = {};
+    if (filterType) params.disasterType = filterType;
+    if (languageFilter !== 'all') params.language = languageFilter;
+    if (statusFilter === 'published') params.published = true;
+    if (statusFilter === 'draft') params.published = false;
+
+    getGuides(params as any)
       .then(r => setGuides(r.data.guides))
       .catch(() => setLoadError('Unable to load safety guides. Please refresh the guide directory and try again.'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [filterType]);
+  useEffect(() => { load(); }, [filterType, languageFilter, statusFilter]);
 
   const stats = useMemo(() => {
     const totalGuides = guides.length;
@@ -113,6 +158,7 @@ export default function GuidesPage() {
     try {
       await deleteGuide(id);
       showToast('Guide deleted');
+      if (viewingGuide?._id === id) setViewingGuide(null);
       load();
     } catch { showToast('Delete failed'); }
   };
@@ -279,17 +325,27 @@ export default function GuidesPage() {
                     <th>Steps</th>
                     <th>Version</th>
                     <th>Published</th>
-                    <th></th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {guides.map(g => (
-                    <tr key={g._id}>
+                    <tr
+                      key={g._id}
+                      onClick={() => setViewingGuide(g)}
+                      style={{ cursor: 'pointer' }}
+                      title="Click to view full guide"
+                    >
                       <td className="guide-title-cell">
                         <div className="guide-title-main">{g.title}</div>
+                        {g.summary && (
+                          <div style={{ fontSize: 12, color: 'var(--grey-500, #64748b)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 360 }}>
+                            {g.summary}
+                          </div>
+                        )}
                       </td>
                       <td><span className={`disaster-badge disaster-badge--${getDisasterBadgeTone(g.disasterType)}`}>{g.disasterType}</span></td>
-                      <td><span className="language-badge">{String(g.language || 'en').toUpperCase()}</span></td>
+                      <td><span className="language-badge">{getLanguageLabel(g.language)} ({String(g.language || 'en').toUpperCase()})</span></td>
                       <td className="steps-cell">
                         <span className="steps-meta"><BookOpen size={12} /> {g.steps.length} steps</span>
                       </td>
@@ -300,8 +356,22 @@ export default function GuidesPage() {
                           {g.isPublished ? 'Published' : 'Draft'}
                         </span>
                       </td>
-                      <td className="table-actions-cell">
-                        <button className="table-delete-btn" onClick={() => handleDelete(g._id)} title={`Delete ${g.title}`} aria-label={`Delete ${g.title}`}>
+                      <td className="table-actions-cell" onClick={e => e.stopPropagation()}>
+                        <button
+                          className="btn btn-ghost btn-icon btn-sm"
+                          onClick={(e) => { e.stopPropagation(); setViewingGuide(g); }}
+                          title={`View ${g.title}`}
+                          aria-label={`View ${g.title}`}
+                          style={{ marginRight: 6 }}
+                        >
+                          <Eye size={15} />
+                        </button>
+                        <button
+                          className="table-delete-btn"
+                          onClick={(e) => { e.stopPropagation(); handleDelete(g._id); }}
+                          title={`Delete ${g.title}`}
+                          aria-label={`Delete ${g.title}`}
+                        >
                           <Trash2 size={14} />
                         </button>
                       </td>
@@ -314,6 +384,149 @@ export default function GuidesPage() {
         </div>
       </div>
 
+      {/* ── View Guide Modal Dialog ────────────────────────────────────────────── */}
+      {viewingGuide && (
+        <div className="modal-overlay" onClick={() => setViewingGuide(null)}>
+          <div className="modal" style={{ maxWidth: 640, width: '92%' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header" style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 8,
+                  background: '#ebf3fa', color: '#0b2a4a',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                  <BookText size={22} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: '#0f172a' }}>{viewingGuide.title}</h2>
+                  <span style={{ fontSize: 12, color: '#64748b' }}>
+                    Safety Guide Details & Emergency Steps
+                  </span>
+                </div>
+              </div>
+              <button
+                className="btn btn-ghost btn-icon btn-sm"
+                onClick={() => setViewingGuide(null)}
+                aria-label="Close dialog"
+                style={{ fontSize: 18, color: '#64748b' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 18, maxHeight: '75vh', overflowY: 'auto' }}>
+              {/* Metadata Badges */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                <span className={`disaster-badge disaster-badge--${getDisasterBadgeTone(viewingGuide.disasterType)}`}>
+                  {viewingGuide.disasterType}
+                </span>
+                <span className="language-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Languages size={13} />
+                  {getLanguageLabel(viewingGuide.language)} ({String(viewingGuide.language).toUpperCase()})
+                </span>
+                <span className="version-badge">Version {viewingGuide.version}</span>
+                <span className={`published-badge ${viewingGuide.isPublished ? 'published' : 'draft'}`}>
+                  <span className="published-dot" />
+                  {viewingGuide.isPublished ? 'Published' : 'Draft'}
+                </span>
+              </div>
+
+              {/* Summary Section */}
+              {viewingGuide.summary && (
+                <div style={{
+                  background: '#f1f5f9',
+                  borderLeft: '4px solid #0052cc',
+                  padding: '14px 16px',
+                  borderRadius: '0 8px 8px 0',
+                  fontSize: 13.5,
+                  lineHeight: 1.55,
+                  color: '#1e293b'
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: 4 }}>
+                    Summary & Overview
+                  </div>
+                  {viewingGuide.summary}
+                </div>
+              )}
+
+              {/* Safety Steps List */}
+              <div>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #e2e8f0'
+                }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ShieldCheck size={16} color="#0052cc" /> Safety Instructions ({viewingGuide.steps?.length || 0} Steps)
+                  </h3>
+                  <span style={{ fontSize: 12, color: '#64748b' }}>Sequential protocol</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {viewingGuide.steps && viewingGuide.steps.length > 0 ? (
+                    [...viewingGuide.steps]
+                      .sort((a, b) => a.order - b.order)
+                      .map((step, idx) => {
+                        const iconEl = getStepIcon(step.iconSlug);
+                        return (
+                          <div key={idx} style={{
+                            display: 'flex', gap: 12, alignItems: 'flex-start',
+                            padding: '12px 14px', borderRadius: 8, background: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                          }}>
+                            <div style={{
+                              width: 32, height: 32, borderRadius: '50%',
+                              background: '#ebf3fa', color: '#0b2a4a',
+                              fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              {iconEl || (step.order || idx + 1)}
+                            </div>
+                            <div style={{ flex: 1, marginTop: 2 }}>
+                              <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 2 }}>
+                                Step {step.order || idx + 1}
+                              </div>
+                              <div style={{ fontSize: 13.5, lineHeight: 1.5, color: '#1e293b' }}>
+                                {step.instruction}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <div style={{ padding: 16, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                      No steps recorded for this safety guide.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+                onClick={() => {
+                  const id = viewingGuide._id;
+                  handleDelete(id);
+                }}
+              >
+                <Trash2 size={14} /> Delete Guide
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setViewingGuide(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Create Guide Modal ────────────────────────────────────────────────── */}
       {showForm && (
         <div className="modal-overlay">
           <div className="modal" style={{ maxWidth: 560 }}>
@@ -405,3 +618,4 @@ export default function GuidesPage() {
     </>
   );
 }
+
