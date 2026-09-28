@@ -191,7 +191,7 @@ flutter run
 
 | Name | Description |
 |---------|-------------|
-| [Harsh Anand](https://github.com/HarshAnand143) | App Logo Design <br> Admin Web UI Design <br> SRC Documentation <br> Decision Tree/Table | 
-| [Kaushik Sharma](https://github.com/MeetKaushikSharma) | Backend |
+| [Harsh Anand](https://github.com/HarshAnand143) | App Logo Design <br> Admin Web UI Design <br> SRC Documentation | 
+| [Kaushik Sharma](https://github.com/MeetKaushikSharma) | Loading Bar Video of Admin Web Page <br> Backend |
 | [Archit Agnihotri](https://github.com/Archit56716) | App UI |
 | [Akshat Dwivedi](https://github.com/HarshAnand143) | DataBase |
