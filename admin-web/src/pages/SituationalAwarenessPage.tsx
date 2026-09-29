@@ -1,250 +1,344 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
 import {
-  ShieldCheck, AlertCircle, PhoneCall,
-  CheckCircle2, MapPin, RefreshCw, Radio
+  AlertCircle, Check, CheckCircle2, ChevronDown, CircleCheck, ClipboardList,
+  Clock3, LoaderCircle, MapPin, PhoneCall, Radio, RefreshCw, Search, Send,
+  ShieldCheck, Siren, TriangleAlert, UserCheck, Users, X,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { getSituationalAwareness, acknowledgeCheckIn } from '../api/services';
+import { INDIA_STATES } from '../data/indiaStates';
 import type { CitizenCheckIn, SituationalAwarenessSummary } from '../types';
+import './SituationalAwarenessPage.css';
+
+const districts = [...new Set(INDIA_STATES.flatMap((state) => state.districts))].sort((a, b) => a.localeCompare(b));
+
+function formatTime(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function coordinate(value: number, positive: string, negative: string) {
+  if (!Number.isFinite(value)) return 'Not available';
+  return `${Math.abs(value).toFixed(4)}°${value < 0 ? negative : positive}`;
+}
+
+function Skeleton({ className = '' }: { className?: string }) {
+  return <div aria-hidden="true" className={`awareness-skeleton ${className}`} />;
+}
 
 export default function SituationalAwarenessPage() {
-  const [summary, setSummary] = useState<SituationalAwarenessSummary>({
-    safe: 0,
-    need_help: 0,
-    family_safe: 0,
-    totalReports: 0,
-  });
+  const [summary, setSummary] = useState<SituationalAwarenessSummary>({ safe: 0, need_help: 0, family_safe: 0, totalReports: 0 });
   const [distressedList, setDistressedList] = useState<CitizenCheckIn[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   const [ackLoading, setAckLoading] = useState<string | null>(null);
-  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [selectedRequest, setSelectedRequest] = useState<CitizenCheckIn | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       const res = await getSituationalAwareness(selectedDistrict ? { district: selectedDistrict } : undefined);
       setSummary(res.data.summary);
       setDistressedList(res.data.distressedList);
-    } catch (err) {
-      console.error('Failed to fetch situational awareness:', err);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || 'Unable to retrieve the latest citizen reports.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    let active = true;
+    const load = async () => {
+      try {
+        const res = await getSituationalAwareness(selectedDistrict ? { district: selectedDistrict } : undefined);
+        if (!active) return;
+        setSummary(res.data.summary);
+        setDistressedList(res.data.distressedList);
+      } catch (err: any) {
+        if (active) setErrorMsg(err.response?.data?.message || 'Unable to retrieve the latest citizen reports.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void load();
+    return () => { active = false; };
   }, [selectedDistrict]);
 
-  const handleAcknowledge = async (id: string) => {
-    setAckLoading(id);
+  const handleConfirmDispatch = async () => {
+    if (!selectedRequest) return;
+    setAckLoading(selectedRequest._id);
     try {
-      await acknowledgeCheckIn(id);
-      setSuccessMsg('Responder team dispatch logged for citizen.');
-      fetchData();
-    } catch (err) {
-      console.error('Failed to acknowledge check-in:', err);
+      const response = await acknowledgeCheckIn(selectedRequest._id);
+      const updatedCheckIn = response.data.checkIn as CitizenCheckIn;
+      setDistressedList((current) => current.map((item) => item._id === updatedCheckIn._id ? updatedCheckIn : item));
+      setSuccessMsg(`Responder team dispatch logged for ${updatedCheckIn.citizenName || 'citizen'}.`);
+      setSelectedRequest(null);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || 'Unable to mark this request as dispatched.');
     } finally {
       setAckLoading(null);
     }
   };
 
   return (
-    <>
-      <div className="topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Radio size={20} color="var(--red-600)" />
-          <span className="topbar-title">Citizen Situational Awareness & Response</span>
+    <div className="citizen-awareness">
+      <header className="topbar awareness-topbar">
+        <div className="awareness-page-heading">
+          <Radio size={21} aria-hidden="true" />
+          <div>
+            <h1>Citizen Situational Awareness &amp; Response</h1>
+            <p>Real-time citizen feedback and emergency response coordination.</p>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <select
-            className="form-select"
-            style={{ width: 180, fontSize: 12, padding: '4px 8px' }}
+        <div className="awareness-header-tools">
+          <span className={`awareness-live-state ${loading ? 'is-loading' : errorMsg ? 'is-error' : 'is-live'}`}>
+            <span className="awareness-live-dot" />{loading ? 'CONNECTING' : errorMsg ? 'FEEDBACK UNAVAILABLE' : 'LIVE CITIZEN FEEDBACK'}
+          </span>
+          <DistrictCombobox
             value={selectedDistrict}
-            onChange={(e) => setSelectedDistrict(e.target.value)}
-          >
-            <option value="">All Districts</option>
-            <option value="Varanasi">Varanasi</option>
-            <option value="Gorakhpur">Gorakhpur</option>
-            <option value="Prayagraj">Prayagraj</option>
-            <option value="Lucknow">Lucknow</option>
-            <option value="Ayodhya">Ayodhya</option>
-          </select>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={fetchData}
-            disabled={loading}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <RefreshCw size={14} className={loading ? 'spin' : ''} />
-            Refresh
+            districts={districts}
+            onChange={(district) => {
+              setLoading(true);
+              setErrorMsg('');
+              setSelectedDistrict(district);
+            }}
+          />
+          <button className="btn btn-secondary btn-sm awareness-refresh" onClick={fetchData} disabled={loading}>
+            {loading ? <LoaderCircle className="awareness-spin" size={15} /> : <RefreshCw size={15} />}
+            {loading ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="page-content">
-        {successMsg && (
-          <div style={{
-            background: '#ecfdf5',
-            color: '#065f46',
-            border: '1px solid #a7f3d0',
-            padding: '12px 16px',
-            borderRadius: 6,
-            marginBottom: 20,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: 13,
-            fontWeight: 600,
-          }}>
-            <CheckCircle2 size={16} />
-            {successMsg}
-          </div>
-        )}
+      <main className="page-content awareness-content">
+        {successMsg && <div className="awareness-success" role="status"><CheckCircle2 size={17} /><span>{successMsg}</span><button aria-label="Dismiss confirmation" onClick={() => setSuccessMsg('')}><X size={16} /></button></div>}
 
-        {/* ── Status Metric Cards ───────────────────────────────────────────── */}
-        <div className="stats-grid" style={{ marginBottom: 24 }}>
-          <div className="stat-card" style={{ borderLeft: '4px solid var(--emerald-500)' }}>
-            <div className="stat-label">Confirmed Safe</div>
-            <div className="stat-value" style={{ color: 'var(--emerald-600)' }}>
-              {loading ? '—' : summary.safe.toLocaleString()}
-            </div>
-            <div className="stat-sub">citizens marked "I am Safe"</div>
-          </div>
+        {errorMsg && <section className="awareness-error" role="alert"><div><span><TriangleAlert size={15} />CITIZEN FEEDBACK UNAVAILABLE</span><p>Unable to retrieve the latest citizen reports.</p>{errorMsg !== 'Unable to retrieve the latest citizen reports.' && <small>{errorMsg}</small>}</div><button className="btn btn-secondary btn-sm" onClick={fetchData} disabled={loading}><RefreshCw size={14} />Retry</button></section>}
 
-          <div className="stat-card" style={{ borderLeft: '4px solid var(--red-500)' }}>
-            <div className="stat-label">Urgent SOS / Help Needed</div>
-            <div className="stat-value" style={{ color: 'var(--red-600)' }}>
-              {loading ? '—' : summary.need_help.toLocaleString()}
-            </div>
-            <div className="stat-sub">distressed citizens awaiting aid</div>
-          </div>
+        <section className="awareness-summary-grid" aria-label="Citizen awareness summary" aria-busy={loading}>
+          {loading ? Array.from({ length: 4 }, (_, index) => <Skeleton className="awareness-summary-skeleton" key={index} />) : <>
+            <SummaryCard icon={CircleCheck} label="Confirmed safe" value={summary.safe} description={'citizens marked "I am Safe"'} tone="safe" />
+            <SummaryCard icon={Siren} label="Urgent SOS / Help Needed" value={summary.need_help} description="distressed citizens awaiting aid" tone="urgent" active={summary.need_help > 0} />
+            <SummaryCard icon={UserCheck} label="Family confirmed safe" value={summary.family_safe} description="multi-person family units" tone="family" />
+            <SummaryCard icon={ClipboardList} label="Total citizen reports" value={summary.totalReports} description="real-time citizen feedback" tone="reports" />
+          </>}
+        </section>
 
-          <div className="stat-card" style={{ borderLeft: '4px solid var(--blue-500)' }}>
-            <div className="stat-label">Family Confirmed Safe</div>
-            <div className="stat-value" style={{ color: 'var(--blue-600)' }}>
-              {loading ? '—' : summary.family_safe.toLocaleString()}
-            </div>
-            <div className="stat-sub">multi-person family units</div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-label">Total Citizen Reports</div>
-            <div className="stat-value">
-              {loading ? '—' : summary.totalReports.toLocaleString()}
-            </div>
-            <div className="stat-sub">real-time feedback rate</div>
-          </div>
-        </div>
-
-        {/* ── Distressed Citizen Response Queue ─────────────────────────────── */}
-        <div className="card">
-          <div className="card-header">
+        <section className="card awareness-queue" aria-busy={loading}>
+          <div className="awareness-queue-heading">
             <div>
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
-                <AlertCircle size={18} color="var(--red-600)" />
-                Urgent Distress Queue — "Need Help" Reports ({distressedList.length})
-              </h2>
-              <p style={{ margin: '4px 0 0 0', fontSize: 12, color: 'var(--grey-500)' }}>
-                Citizens requesting evacuation, medical supplies, or boat assistance during active alerts
-              </p>
+              <div className="awareness-queue-title"><AlertCircle size={19} /><h2>Urgent Distress Queue</h2></div>
+              <p>Citizens requesting immediate assistance during active disaster conditions.</p>
             </div>
+            <span className="awareness-active-count"><span />{loading ? '—' : summary.need_help.toLocaleString()} ACTIVE REQUESTS</span>
           </div>
 
-          {loading ? (
-            <div className="loading-center"><span className="spinner" /> Loading response queue...</div>
-          ) : distressedList.length === 0 ? (
-            <div className="empty-state" style={{ padding: 40 }}>
-              <ShieldCheck size={36} color="var(--emerald-600)" />
-              <p style={{ marginTop: 12, fontWeight: 600 }}>No active distress calls in this district.</p>
-              <span style={{ fontSize: 12, color: 'var(--grey-500)' }}>
-                All reporting citizens are accounted for or confirmed safe.
-              </span>
-            </div>
+          {loading ? <div className="awareness-loading-rows" aria-label="Loading citizen reports">{Array.from({ length: 4 }, (_, index) => <Skeleton className="awareness-row-skeleton" key={index} />)}</div> : distressedList.length === 0 ? (
+            <div className="awareness-empty"><span className="awareness-empty-icon"><ShieldCheck size={22} /></span><div><h3>NO ACTIVE DISTRESS REQUESTS</h3><p>No citizens are currently awaiting emergency assistance.</p><ul><li><CheckCircle2 size={15} />Monitoring active</li><li><CheckCircle2 size={15} />Citizen feedback connected</li></ul></div></div>
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Citizen Details</th>
-                    <th>District / Coordinates</th>
-                    <th>Reported Message</th>
-                    <th>People</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {distressedList.map((c) => (
-                    <tr key={c._id} style={{ background: c.isAcknowledgedByResponders ? 'transparent' : '#fff5f5' }}>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{c.citizenName}</div>
-                        {c.phone && (
-                          <div style={{ fontSize: 11, color: 'var(--grey-600)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <PhoneCall size={11} /> {c.phone}
-                          </div>
-                        )}
-                        <div style={{ fontSize: 10, color: 'var(--grey-400)' }}>
-                          {new Date(c.createdAt).toLocaleTimeString()}
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{c.district}, {c.state}</div>
-                        <div style={{ fontSize: 11, color: 'var(--grey-500)', display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <MapPin size={11} /> {c.location.coordinates[1].toFixed(4)}°N, {c.location.coordinates[0].toFixed(4)}°E
-                        </div>
-                      </td>
-                      <td style={{ maxWidth: 320, fontSize: 12 }}>
-                        {c.message || 'No additional comment provided.'}
-                      </td>
-                      <td>
-                        <span style={{ fontWeight: 700 }}>{c.peopleCount}</span>
-                      </td>
-                      <td>
-                        {c.isAcknowledgedByResponders ? (
-                          <span style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: 'var(--emerald-700)',
-                            background: '#ecfdf5',
-                            padding: '3px 8px',
-                            borderRadius: 4,
-                          }}>
-                            Responders Dispatched
-                          </span>
-                        ) : (
-                          <span style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: 'var(--red-700)',
-                            background: '#fef2f2',
-                            padding: '3px 8px',
-                            borderRadius: 4,
-                          }}>
-                            Pending Response
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {!c.isAcknowledgedByResponders && (
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => handleAcknowledge(c._id)}
-                            disabled={ackLoading === c._id}
-                            style={{ fontSize: 11, padding: '4px 10px' }}
-                          >
-                            {ackLoading === c._id ? 'Dispatching…' : 'Mark Dispatched'}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+            <div className="awareness-table-wrap">
+              <table className="awareness-table">
+                <thead><tr><th>Citizen</th><th>Location</th><th>Reported message</th><th>People</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>{distressedList.map((citizen) => {
+                  const [longitude, latitude] = citizen.location?.coordinates ?? [Number.NaN, Number.NaN];
+                  return <tr className={citizen.isAcknowledgedByResponders ? 'is-dispatched' : 'is-pending'} key={citizen._id}>
+                    <td data-label="Citizen"><div className="awareness-citizen-cell"><strong>{citizen.citizenName || 'Not available'}</strong><span className="awareness-cell-meta"><PhoneCall size={12} />{citizen.phone || 'Not available'}</span><span className="awareness-cell-time"><Clock3 size={12} />Reported {formatTime(citizen.createdAt)}</span></div></td>
+                    <td data-label="Location"><div className="awareness-location-cell"><strong>{citizen.district || 'Not available'}, {citizen.state || 'Not available'}</strong><span className="awareness-cell-meta"><MapPin size={13} />{coordinate(latitude, 'N', 'S')}, {coordinate(longitude, 'E', 'W')}</span></div></td>
+                    <td data-label="Reported message"><p className="awareness-message">{citizen.message || 'Not available'}</p></td>
+                    <td data-label="People"><div className="awareness-people"><Users size={17} /><strong>{citizen.peopleCount}</strong><span>people</span></div></td>
+                    <td data-label="Status"><StatusBadge dispatched={citizen.isAcknowledgedByResponders} /></td>
+                    <td data-label="Action">{citizen.isAcknowledgedByResponders ? <span className="awareness-dispatched-action"><CheckCircle2 size={15} />Dispatched</span> : <button className="btn btn-primary btn-sm awareness-dispatch-button" onClick={() => setSelectedRequest(citizen)} disabled={ackLoading === citizen._id}>{ackLoading === citizen._id ? <LoaderCircle size={14} className="awareness-spin" /> : <Send size={14} />}{ackLoading === citizen._id ? 'Dispatching...' : 'Mark Dispatched'}<span aria-hidden="true">→</span></button>}</td>
+                  </tr>;
+                })}</tbody>
               </table>
             </div>
           )}
-        </div>
-      </div>
-    </>
+        </section>
+      </main>
+
+      {selectedRequest && <div className="awareness-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedRequest(null); }}>
+        <section className="awareness-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="dispatch-confirm-title">
+          <header><div><span>RESPONSE COORDINATION</span><h2 id="dispatch-confirm-title">Mark request as dispatched?</h2></div><button className="awareness-close" aria-label="Close dialog" onClick={() => setSelectedRequest(null)}><X size={17} /></button></header>
+          <div className="awareness-confirm-body">
+            <dl><div><dt>Citizen</dt><dd>{selectedRequest.citizenName || 'Not available'}</dd></div><div><dt>Location</dt><dd>{selectedRequest.district || 'Not available'}, {selectedRequest.state || 'Not available'}</dd></div><div><dt>People affected</dt><dd>{selectedRequest.peopleCount}</dd></div></dl>
+            <div className="awareness-confirm-message"><strong>REQUEST</strong><p>{selectedRequest.message || 'Not available'}</p></div>
+          </div>
+          <footer><button className="btn btn-secondary" onClick={() => setSelectedRequest(null)}>Cancel</button><button className="btn btn-primary" onClick={handleConfirmDispatch} disabled={ackLoading !== null}><Send size={15} />{ackLoading ? 'Dispatching...' : 'Mark Dispatched'}</button></footer>
+        </section>
+      </div>}
+    </div>
   );
+}
+
+function DistrictCombobox({ value, districts: options, onChange }: { value: string; districts: string[]; onChange: (district: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [popoverTop, setPopoverTop] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const listboxId = 'awareness-district-options';
+  const normalizedSearch = search.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+  const matches = options.filter((district) => district.toLocaleLowerCase().replace(/\s+/g, ' ').includes(normalizedSearch));
+  const selectableDistricts = ['', ...matches];
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const frame = requestAnimationFrame(() => searchRef.current?.focus());
+    const handleOutsidePointer = (event: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener('pointerdown', handleOutsidePointer);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('pointerdown', handleOutsidePointer);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) document.getElementById(`${listboxId}-${highlightedIndex}`)?.scrollIntoView({ block: 'nearest' });
+  }, [highlightedIndex, isOpen]);
+
+  const open = () => {
+    setSearch('');
+    const triggerBounds = triggerRef.current?.getBoundingClientRect();
+    setPopoverTop(triggerBounds ? triggerBounds.bottom + 6 : 12);
+    const selectedIndex = value ? options.indexOf(value) : -1;
+    setHighlightedIndex(selectedIndex >= 0 ? selectedIndex + 1 : 0);
+    setIsOpen(true);
+  };
+
+  const close = (returnFocus = true) => {
+    setIsOpen(false);
+    setSearch('');
+    if (returnFocus) requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
+  const select = (district: string) => {
+    onChange(district);
+    close();
+  };
+
+  const moveHighlight = (direction: -1 | 1) => {
+    setHighlightedIndex((current) => Math.min(Math.max(current + direction, 0), selectableDistricts.length - 1));
+  };
+
+  const handleTriggerKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (!isOpen) open();
+    }
+  };
+
+  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveHighlight(1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveHighlight(-1);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (normalizedSearch && matches.length === 0) return;
+      const district = selectableDistricts[highlightedIndex];
+      if (district !== undefined) select(district);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      close();
+    } else if (event.key === 'Tab') {
+      close(false);
+    }
+  };
+
+  const handleSearchChange = (nextSearch: string) => {
+    setSearch(nextSearch);
+    const query = nextSearch.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+    const matchingCount = options.filter((district) => district.toLocaleLowerCase().replace(/\s+/g, ' ').includes(query)).length;
+    setHighlightedIndex(matchingCount > 0 ? 1 : 0);
+  };
+
+  return (
+    <div className="awareness-combobox" ref={rootRef}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`awareness-combobox-trigger${isOpen ? ' is-open' : ''}`}
+        role={isOpen ? 'button' : 'combobox'}
+        aria-label="Filter citizen reports by district"
+        aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-haspopup="listbox"
+        onClick={() => isOpen ? close(false) : open()}
+        onKeyDown={handleTriggerKeyDown}
+      >
+        <span>{value || 'All Districts'}</span>
+        <ChevronDown size={16} aria-hidden="true" />
+      </button>
+      {isOpen && <div className="awareness-combobox-popover" style={{ '--awareness-popover-top': `${popoverTop}px` } as CSSProperties}>
+        <div className="awareness-combobox-search">
+          <Search size={15} aria-hidden="true" />
+          <input
+            ref={searchRef}
+            type="search"
+            value={search}
+            placeholder="Search district..."
+            aria-label="Search district"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded="true"
+            aria-haspopup="listbox"
+            aria-controls={listboxId}
+            aria-activedescendant={`${listboxId}-${highlightedIndex}`}
+            onChange={(event) => handleSearchChange(event.target.value)}
+            onKeyDown={handleSearchKeyDown}
+          />
+        </div>
+        <div className="awareness-combobox-list" id={listboxId} role="listbox" aria-label="Districts">
+          <button
+            type="button"
+            id={`${listboxId}-0`}
+            className={`awareness-combobox-option${highlightedIndex === 0 ? ' is-highlighted' : ''}${value === '' ? ' is-selected' : ''}`}
+            role="option"
+            aria-selected={value === ''}
+            tabIndex={-1}
+            onMouseEnter={() => setHighlightedIndex(0)}
+            onClick={() => select('')}
+          >
+            <span>All Districts</span>{value === '' && <Check size={15} aria-hidden="true" />}
+          </button>
+          {matches.length > 0 ? matches.map((district, index) => {
+            const optionIndex = index + 1;
+            const selected = value === district;
+            return <button
+              type="button"
+              id={`${listboxId}-${optionIndex}`}
+              className={`awareness-combobox-option${highlightedIndex === optionIndex ? ' is-highlighted' : ''}${selected ? ' is-selected' : ''}`}
+              role="option"
+              aria-selected={selected}
+              tabIndex={-1}
+              key={district}
+              onMouseEnter={() => setHighlightedIndex(optionIndex)}
+              onClick={() => select(district)}
+            >
+              <span>{district}</span>{selected && <Check size={15} aria-hidden="true" />}
+            </button>;
+          }) : <div className="awareness-combobox-empty"><strong>No districts found</strong><span>Try a different district</span></div>}
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+function SummaryCard({ icon: Icon, label, value, description, tone, active = false }: { icon: LucideIcon; label: string; value: number; description: string; tone: 'safe' | 'urgent' | 'family' | 'reports'; active?: boolean }) {
+  return <article className={`awareness-summary-card tone-${tone}${active ? ' has-active' : ''}`}><span className="awareness-summary-icon"><Icon size={18} /></span><div className="awareness-summary-copy"><span className="awareness-summary-label">{label}</span><strong>{value.toLocaleString()}</strong><small>{description}</small></div>{active && <span className="awareness-urgent-mark" aria-label="Urgent requests are waiting" />}</article>;
+}
+
+function StatusBadge({ dispatched }: { dispatched: boolean }) {
+  return dispatched ? <span className="awareness-status is-dispatched"><CheckCircle2 size={14} />Dispatched</span> : <span className="awareness-status is-pending"><Clock3 size={14} />Pending response</span>;
 }
