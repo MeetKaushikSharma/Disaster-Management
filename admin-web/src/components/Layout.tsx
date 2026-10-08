@@ -8,6 +8,7 @@ import {
   PlusCircle,
   BrainCircuit,
   Radio,
+  Layers,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -59,6 +60,10 @@ export default function Layout() {
             <NavLink to="/ai-hub" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
               <BrainCircuit size={16} />
               AI Anomaly Hub
+            </NavLink>
+            <NavLink to="/heatmap" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+              <Layers size={16} />
+              Windy Heat Map
             </NavLink>
           </div>
 

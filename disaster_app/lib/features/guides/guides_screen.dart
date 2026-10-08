@@ -31,6 +31,7 @@ class _GuidesScreenState extends State<GuidesScreen> {
     'Landslide',
   ];
 
+  // Icon mapping for disaster types
   static IconData _iconForType(String type) {
     switch (type.toLowerCase()) {
       case 'earthquake':

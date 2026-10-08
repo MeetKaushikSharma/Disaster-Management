@@ -10,6 +10,7 @@ import GuidesPage from './pages/GuidesPage';
 import LogsPage from './pages/LogsPage';
 import AiAnomalyHubPage from './pages/AiAnomalyHubPage';
 import SituationalAwarenessPage from './pages/SituationalAwarenessPage';
+import HeatMapPage from './pages/HeatMapPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
@@ -89,6 +90,11 @@ export default function App() {
         <Route
           path="ai-hub"
           element={<AiAnomalyHubPage />}
+        />
+
+        <Route
+          path="heatmap"
+          element={<HeatMapPage />}
         />
 
         <Route

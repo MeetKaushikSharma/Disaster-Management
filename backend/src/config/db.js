@@ -5,16 +5,24 @@
 
 const mongoose = require('mongoose');
 
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      // These options are no longer needed in Mongoose 7+ but kept for clarity
-      serverSelectionTimeoutMS: 10_000,
-    });
-    console.log(`[DB] MongoDB connected: ${conn.connection.host}`);
-  } catch (err) {
-    console.error('[DB] Connection error:', err.message);
-    process.exit(1);
+const connectDB = async (retries = 5, delay = 3000) => {
+  for (let i = 1; i <= retries; i++) {
+    try {
+      const conn = await mongoose.connect(process.env.MONGO_URI, {
+        serverSelectionTimeoutMS: 10_000,
+      });
+      console.log(`[DB] MongoDB connected: ${conn.connection.host}`);
+      return;
+    } catch (err) {
+      console.error(`[DB] Connection attempt ${i}/${retries} failed:`, err.message);
+      if (i < retries) {
+        console.log(`[DB] Retrying connection in ${delay / 1000}s...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        console.error('[DB] All connection retries failed. Please check internet connection / DNS.');
+        process.exit(1);
+      }
+    }
   }
 };
 

@@ -234,4 +234,147 @@ router.patch(
   }
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/ai-alerts/pending — Fast query for pending alerts (HITL / Telegram Bot)
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/pending', async (req, res, next) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const alerts = await AiAlert.find({
+      status: { $in: ['pending_review', 'PENDING_REVIEW'] },
+    })
+      .sort({ score: -1, createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    res.json({
+      success: true,
+      count: alerts.length,
+      alerts,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/ai-alerts/:id/status — Human-in-the-Loop decision (Telegram Bot / API)
+// Updates status to APPROVED (auto-broadcasts DisasterEvent) or REJECTED.
+// ─────────────────────────────────────────────────────────────────────────────
+router.patch(
+  '/:id/status',
+  [
+    param('id').isMongoId().withMessage('Invalid AI alert ID'),
+    body('status').notEmpty().withMessage('Status is required'),
+    body('reviewedBy').optional().isString(),
+    body('reviewNotes').optional().isString(),
+  ],
+  validate,
+  async (req, res, next) => {
+    try {
+      const aiAlert = await AiAlert.findById(req.params.id);
+      if (!aiAlert) {
+        return res.status(404).json({ success: false, message: 'AI alert not found' });
+      }
+
+      const rawStatus = (req.body.status || '').toLowerCase();
+      const reviewerName = req.body.reviewedBy || 'HITL Operator';
+
+      if (rawStatus.includes('approve')) {
+        aiAlert.status = 'approved_into_event';
+        aiAlert.reviewedByName = reviewerName;
+        aiAlert.reviewedAt = new Date();
+        aiAlert.reviewNotes = req.body.reviewNotes || `Approved by ${reviewerName}`;
+
+        // Coordinates mapping fallback
+        const DISTRICT_COORDS = {
+          Delhi: [77.1025, 28.7041],
+          Noida: [77.3910, 28.5355],
+          Ghaziabad: [77.4538, 28.6692],
+          Faridabad: [77.3178, 28.4089],
+          Gurugram: [77.0266, 28.4595],
+          'Gautam Buddha Nagar': [77.5040, 28.4744],
+        };
+
+        const centreCoords =
+          aiAlert.suggestedCentre && aiAlert.suggestedCentre.length === 2
+            ? aiAlert.suggestedCentre
+            : DISTRICT_COORDS[aiAlert.district] || [77.2090, 28.6139];
+
+        // Map severity to standard Event severity
+        const sevMap = {
+          Emergency: 'Critical',
+          Warning: 'High',
+          Watch: 'Medium',
+          Advisory: 'Low',
+        };
+        const eventSeverity = sevMap[aiAlert.recommendedSeverity] || 'High';
+
+        // Auto-promote to live DisasterEvent
+        const event = await DisasterEvent.create({
+          title: `[AI Alert APPROVED] ${aiAlert.hazardType} in ${aiAlert.district}`,
+          type: aiAlert.hazardType.includes('Flood') ? 'Flood' :
+                aiAlert.hazardType.includes('Heat') ? 'Heatwave' :
+                aiAlert.hazardType.includes('Storm') ? 'Storm' : 'Other',
+          severity: eventSeverity,
+          description: aiAlert.explanation,
+          targetStates: [aiAlert.state],
+          targetDistricts: [aiAlert.district],
+          state: aiAlert.state,
+          district: aiAlert.district,
+          translations: {
+            hi: {
+              title: `[पुष्ट चेतावनी] ${aiAlert.district} में ${aiAlert.hazardType}`,
+              description: `${aiAlert.district} में आपदा चेतावनी अनुमोदित। सावधानी बरतें।`,
+            },
+          },
+          zoneType: 'radius',
+          centre: {
+            type: 'Point',
+            coordinates: centreCoords,
+          },
+          radiusKm: aiAlert.suggestedRadiusKm || 15,
+          bufferRadiusKm: 5,
+          status: 'active',
+          approvalWorkflow: {
+            submittedAt: new Date(),
+            approvedAt: new Date(),
+            reviewNotes: `Approved via Telegram / HITL by ${reviewerName}`,
+          },
+        });
+
+        aiAlert.linkedEventId = event._id;
+        await aiAlert.save();
+
+        // Dispatch FCM notifications to citizens
+        alertService.dispatchAlerts(event).catch((err) =>
+          console.error('[AiAlerts] Auto-dispatch failed on HITL approve:', err.message)
+        );
+
+        return res.json({
+          success: true,
+          message: `AI Alert approved and broadcasted as active event: ${event.title}`,
+          alert: aiAlert,
+          event,
+        });
+      } else {
+        // Rejection / dismissal
+        aiAlert.status = 'rejected';
+        aiAlert.reviewedByName = reviewerName;
+        aiAlert.reviewedAt = new Date();
+        aiAlert.reviewNotes = req.body.reviewNotes || `Rejected by ${reviewerName}`;
+        await aiAlert.save();
+
+        return res.json({
+          success: true,
+          message: `AI Alert rejected by ${reviewerName}`,
+          alert: aiAlert,
+        });
+      }
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 module.exports = router;

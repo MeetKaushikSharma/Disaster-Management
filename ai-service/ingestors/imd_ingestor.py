@@ -80,26 +80,8 @@ DISTRICT_BASELINES = {
 }
 
 
-def _fetch_owm_weather(city: str) -> dict | None:
-    """Calls OWM Current Weather API and returns the raw JSON response."""
-    if not OWM_API_KEY:
-        logger.debug("[IMD Ingestor] OPENWEATHER_API_KEY not configured; using fallback baseline.")
-        return None
-    try:
-        resp = requests.get(
-            OWM_BASE_URL,
-            params={
-                "q": city,
-                "appid": OWM_API_KEY,
-                "units": "metric",
-            },
-            timeout=8,
-        )
-        resp.raise_for_status()
-        return resp.json()
-    except requests.RequestException as exc:
-        logger.warning(f"[IMD Ingestor] OWM request failed for '{city}': {exc}")
-        return None
+from ingestors.weather_client import fetch_owm_weather as _fetch_owm_weather
+
 
 
 def _classify_imd_warning(rain_1h: float, rain_3h: float, wind_kmh: float) -> str | None:
@@ -150,6 +132,8 @@ class ImdIngestor:
         })
         now = datetime.now(timezone.utc).isoformat()
 
+        owm_raw = None
+        om_data = None
         owm_fetched = False
         rain_1h = 0.0
         rain_3h = 0.0
@@ -189,16 +173,38 @@ class ImdIngestor:
                 weather_desc = weather_list[0].get("description", "clear sky") if weather_list else "clear sky"
                 imd_warning = _classify_imd_warning(rain_1h, rain_3h, wind)
             else:
-                # Fallback simulated baseline
-                rain_val = max(0.0, round(baseline["normal_rain"] + random.uniform(-6, 6), 1))
-                temp_val = round(baseline["normal_temp"] + random.uniform(-2, 3), 1)
-                humidity = round(random.uniform(60, 80), 1)
-                wind = round(random.uniform(10, 22), 1)
-                weather_desc = "data unavailable (OWM offline)"
-                imd_warning = None
+                # Fallback to free Open-Meteo Atmospheric Forecast (Zero-Cost, No Key)
+                om_data = None
+                try:
+                    from ingestors.open_meteo_ingestor import OpenMeteoIngestor
+                    om_ingestor = OpenMeteoIngestor()
+                    om_data = om_ingestor.get_district_telemetry(
+                        district, baseline["lat"], baseline["lng"]
+                    )
+                except Exception as om_err:
+                    logger.debug(f"[IMD Ingestor] Open-Meteo fallback failed: {om_err}")
+
+                if om_data:
+                    rain_val = float(om_data.get("rainfall_mm", 0.0))
+                    rain_1h = round(rain_val / 12.0, 2)
+                    rain_3h = round(rain_val / 4.0, 2)
+                    temp_val = float(om_data.get("temperature_c", baseline["normal_temp"]))
+                    wind = float(om_data.get("wind_speed_kmh", 12.0))
+                    humidity = 62.0
+                    weather_desc = f"Open-Meteo NWP Forecast (Precip: {rain_val}mm)"
+                    imd_warning = _classify_imd_warning(rain_1h, rain_3h, wind)
+                    owm_fetched = True
+                else:
+                    # Simulated baseline fallback if all external feeds are unreachable
+                    rain_val = max(0.0, round(baseline["normal_rain"] + random.uniform(-6, 6), 1))
+                    temp_val = round(baseline["normal_temp"] + random.uniform(-2, 3), 1)
+                    humidity = round(random.uniform(60, 80), 1)
+                    wind = round(random.uniform(10, 22), 1)
+                    weather_desc = "data unavailable (OWM/Open-Meteo offline)"
+                    imd_warning = None
 
         return {
-            "source": "IMD+OWM",
+            "source": "Open-Meteo" if (not owm_raw and om_data) else "IMD+OWM",
             "state": baseline.get("state", self.state),
             "district": district,
             "stationId": f"IMD_{district.upper().replace(' ', '_')}_AWS",

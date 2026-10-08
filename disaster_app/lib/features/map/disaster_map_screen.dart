@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/models/alert_model.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/api_service.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
+import 'widgets/heat_overlay.dart';
+import 'widgets/windy_map_widget.dart';
 
 class DisasterMapScreen extends StatefulWidget {
   final AppLocalizations localizations;
@@ -21,15 +23,36 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
   double _userLat = LocationService.defaultLat;
   double _userLng = LocationService.defaultLng;
   List<DisasterAlert> _activeEvents = [];
+  List<HeatPoint> _heatPoints = [];
+  HeatLayerType _selectedLayer = HeatLayerType.rainfall;
+  String _selectedHorizon = 'now';
   bool _isLoading = true;
+  bool _isHeatmapLoading = false;
+  bool _showHeatmap = true;
+  bool _isWindyLiveMode = true;
+
+  final List<Map<String, dynamic>> _layers = [
+    {'type': HeatLayerType.rainfall, 'key': 'rainfall', 'label': 'Rain', 'icon': Icons.water_drop_rounded},
+    {'type': HeatLayerType.temperature, 'key': 'temperature', 'label': 'Temp', 'icon': Icons.thermostat_rounded},
+    {'type': HeatLayerType.wind, 'key': 'wind', 'label': 'Wind', 'icon': Icons.air_rounded},
+    {'type': HeatLayerType.river, 'key': 'river', 'label': 'River', 'icon': Icons.waves_rounded},
+    {'type': HeatLayerType.risk, 'key': 'risk', 'label': 'Hazard Risk', 'icon': Icons.warning_amber_rounded},
+  ];
+
+  final List<Map<String, String>> _horizons = [
+    {'id': 'now', 'label': 'LIVE'},
+    {'id': '1h', 'label': '+1h'},
+    {'id': '3h', 'label': '+3h'},
+    {'id': '6h', 'label': '+6h (Forecast)'},
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadMapData();
+    _loadInitialData();
   }
 
-  Future<void> _loadMapData() async {
+  Future<void> _loadInitialData() async {
     final pos = await LocationService().getCurrentLocation();
     if (pos != null) {
       _userLat = pos.latitude;
@@ -43,6 +66,21 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
         _isLoading = false;
       });
     }
+
+    await _fetchHeatmapPoints();
+  }
+
+  Future<void> _fetchHeatmapPoints() async {
+    setState(() => _isHeatmapLoading = true);
+    final activeKey = _layers.firstWhere((l) => l['type'] == _selectedLayer)['key'] as String;
+    final points = await ApiService().getHeatmapGrid(layer: activeKey, horizon: _selectedHorizon);
+
+    if (mounted) {
+      setState(() {
+        _heatPoints = points;
+        _isHeatmapLoading = false;
+      });
+    }
   }
 
   void _centerOnUser() {
@@ -51,8 +89,6 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = widget.localizations;
-
     // Build circles for radius-type events
     final circles = <CircleMarker>[];
     for (final ev in _activeEvents) {
@@ -65,8 +101,8 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
               point: centre,
               radius: (ev.radiusKm! + ev.bufferRadiusKm) * 1000,
               useRadiusInMeter: true,
-              color: const Color(0xFFFBBF24).withValues(alpha: 0.25),
-              borderColor: const Color(0xFFF59E0B),
+              color: Colors.amber.withValues(alpha: 0.15),
+              borderColor: Colors.amber.shade700,
               borderStrokeWidth: 1.5,
             ),
           );
@@ -77,7 +113,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
             point: centre,
             radius: ev.radiusKm! * 1000,
             useRadiusInMeter: true,
-            color: AppTheme.dangerRed.withValues(alpha: 0.3),
+            color: AppTheme.dangerRed.withValues(alpha: 0.25),
             borderColor: AppTheme.dangerRed,
             borderStrokeWidth: 2.0,
           ),
@@ -102,52 +138,129 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        title: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _selectedHorizon == 'now' ? const Color(0xFF10B981) : const Color(0xFFA855F7),
+                boxShadow: [
+                  BoxShadow(
+                    color: _selectedHorizon == 'now'
+                        ? const Color(0xFF10B981).withValues(alpha: 0.6)
+                        : const Color(0xFFA855F7).withValues(alpha: 0.6),
+                    blurRadius: 6,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              _selectedHorizon == 'now' ? 'Windy Disaster Radar' : 'Windy ML Forecast ($_selectedHorizon)',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+            ),
+          ],
+        ),
+        actions: [
+          // Dual-Engine Mode Toggle (Windy Live Particle Radar vs Local AI Sensor Grid)
+          TextButton.icon(
+            style: TextButton.styleFrom(
+              backgroundColor: _isWindyLiveMode
+                  ? Colors.amber.withValues(alpha: 0.22)
+                  : const Color(0xFF1E293B),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: _isWindyLiveMode ? Colors.amberAccent : Colors.white24,
+                  width: 1,
+                ),
+              ),
+            ),
+            icon: Icon(
+              _isWindyLiveMode ? Icons.radar_rounded : Icons.sensors_rounded,
+              size: 15,
+              color: _isWindyLiveMode ? Colors.amberAccent : Colors.white70,
+            ),
+            label: Text(
+              _isWindyLiveMode ? 'Windy' : 'Sensor Grid',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: _isWindyLiveMode ? Colors.amberAccent : Colors.white,
+              ),
+            ),
+            onPressed: () => setState(() => _isWindyLiveMode = !_isWindyLiveMode),
+          ),
+          if (!_isWindyLiveMode)
+            IconButton(
+              icon: Icon(
+                _showHeatmap ? Icons.layers_rounded : Icons.layers_outlined,
+                color: _showHeatmap ? const Color(0xFF38BDF8) : Colors.white60,
+              ),
+              tooltip: 'Toggle Heatmap',
+              onPressed: () => setState(() => _showHeatmap = !_showHeatmap),
+            ),
+          IconButton(
+            icon: const Icon(Icons.my_location_rounded, color: Colors.white),
+            tooltip: 'Center on my location',
+            onPressed: _centerOnUser,
+          ),
+        ],
+      ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.deepBlue))
-          : Stack(
-              children: [
-                // --- Map ---
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF38BDF8)))
+          : _isWindyLiveMode
+              ? WindyMapWidget(
+                  initialLat: _userLat,
+                  initialLng: _userLng,
+                )
+              : Stack(
+                  children: [
                 FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
                     initialCenter: LatLng(_userLat, _userLng),
-                    initialZoom: 7.0,
-                    minZoom: 3.0,
+                    initialZoom: 9.5,
+                    minZoom: 4.0,
                     maxZoom: 18.0,
                   ),
                   children: [
-                    // Free OpenStreetMap Tiles
+                    // CartoDB Dark Matter tile layer for Windy dark aesthetic
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
+                      subdomains: const ['a', 'b', 'c', 'd'],
                       userAgentPackageName: 'com.indiasafety.disaster',
                     ),
+                    // Windy-Style CustomPainter Heatmap Overlay
+                    if (_showHeatmap)
+                      HeatOverlayWidget(
+                        points: _heatPoints,
+                        layerType: _selectedLayer,
+                        opacity: 0.72,
+                      ),
                     // Hazard Circles
                     CircleLayer(circles: circles),
                     // Hazard Polygons
                     PolygonLayer(polygons: polygons),
-                    // User Location Marker — blue dot with white border
+                    // User Location Marker
                     MarkerLayer(
                       markers: [
                         Marker(
                           point: LatLng(_userLat, _userLng),
                           width: 44,
                           height: 44,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppTheme.deepBlue,
-                              border: Border.all(color: Colors.white, width: 3),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.deepBlue.withValues(alpha: 0.35),
-                                  blurRadius: 12,
-                                  spreadRadius: 4,
-                                ),
-                              ],
-                            ),
-                            width: 22,
-                            height: 22,
+                          child: const Icon(
+                            Icons.person_pin_circle,
+                            color: Color(0xFF38BDF8),
+                            size: 38,
                           ),
                         ),
                       ],
@@ -155,257 +268,140 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
                   ],
                 ),
 
-                // --- Top overlays ---
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 8),
-                        // Search bar
-                        Container(
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: AppTheme.softShadow,
+                // Loading Indicator Badge for Heatmap updates
+                if (_isHeatmapLoading)
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xDD0F172A),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)),
                           ),
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 16),
-                              const Icon(Icons.search, size: 22, color: AppTheme.textSecondary),
-                              const SizedBox(width: 10),
-                              Text(
-                                t.translate('search_guides'),
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: AppTheme.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        // Filter chips row
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildFilterChip('Hazards', Icons.warning_amber_rounded, false),
-                              const SizedBox(width: 8),
-                              _buildFilterChip('Shelters', Icons.home_rounded, true),
-                              const SizedBox(width: 8),
-                              _buildFilterChip('Hospitals', Icons.local_hospital_rounded, false),
-                              const SizedBox(width: 8),
-                              _buildFilterChip('Relief Camps', Icons.people_alt_rounded, false),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        // GPS coordinates pill
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surface,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: AppTheme.softShadow,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.gps_fixed, size: 14, color: AppTheme.textSecondary),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '${_userLat.toStringAsFixed(4)}°N, ${_userLng.toStringAsFixed(4)}°E, LIVE',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppTheme.textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                          SizedBox(width: 8),
+                          Text('Updating grid...', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                // --- FABs on right side ---
+                // Bottom Floating Controls (Windy-style Layer Switcher & Time Horizon)
                 Positioned(
-                  right: 16,
-                  bottom: 200,
+                  bottom: 20,
+                  left: 12,
+                  right: 12,
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildMapFab(Icons.gps_fixed, 'Recenter', _centerOnUser),
-                      const SizedBox(height: 12),
-                      _buildMapFab(Icons.layers_outlined, 'Layers', () {}),
-                    ],
-                  ),
-                ),
-
-                // --- Bottom info card ---
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 100, // above the floating nav bar
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surface,
-                      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                      boxShadow: AppTheme.softShadow,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Nearest Shelter',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'Community Relief Centre',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          '1.4 km, 18 min walk',
-                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            // Capacity bar
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Capacity 62%',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: 0.62,
-                                      backgroundColor: AppTheme.background,
-                                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.safeGreen),
-                                      minHeight: 6,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Navigate button
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.inkNavy,
-                                foregroundColor: AppTheme.surface,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              ),
-                              icon: const Icon(Icons.navigation_rounded, size: 18),
-                              label: const Text(
-                                'Navigate',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                              ),
-                              onPressed: () {},
-                            ),
-                            const SizedBox(width: 8),
-                            // Call button
-                            Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: AppTheme.textSecondary.withValues(alpha: 0.3)),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.phone_rounded, size: 20, color: AppTheme.textPrimary),
-                                onPressed: () {},
-                                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                              ),
-                            ),
+                      // Time Horizon Chips (+Now, +1h, +3h, +6h)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xEE0F172A),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: Colors.white12),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 4)),
                           ],
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: _horizons.map((h) {
+                            final isSel = _selectedHorizon == h['id'];
+                            final isPred = h['id'] != 'now';
+                            return InkWell(
+                              onTap: () {
+                                setState(() => _selectedHorizon = h['id']!);
+                                _fetchHeatmapPoints();
+                              },
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: isSel
+                                      ? (isPred ? const Color(0xFFA855F7) : const Color(0xFF38BDF8))
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  h['label']!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                    color: isSel ? Colors.black : Colors.white70,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+
+                      // Windy Layer Selector (Rain, Temp, Wind, River, Risk)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xF00F172A),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.white12),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black45, blurRadius: 12, offset: Offset(0, 4)),
+                          ],
+                        ),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: _layers.map((l) {
+                              final isSel = _selectedLayer == l['type'];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: ChoiceChip(
+                                  label: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(l['icon'] as IconData, size: 16, color: isSel ? Colors.black : Colors.white70),
+                                      const SizedBox(width: 4),
+                                      Text(l['label'] as String),
+                                    ],
+                                  ),
+                                  selected: isSel,
+                                  selectedColor: const Color(0xFF38BDF8),
+                                  backgroundColor: const Color(0xFF1E293B),
+                                  labelStyle: TextStyle(
+                                    color: isSel ? Colors.black : Colors.white70,
+                                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                    fontSize: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() => _selectedLayer = l['type'] as HeatLayerType);
+                                      _fetchHeatmapPoints();
+                                    }
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, IconData icon, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? AppTheme.deepBlue : AppTheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: isSelected ? null : AppTheme.softShadow,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: isSelected ? AppTheme.surface : AppTheme.textPrimary,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? AppTheme.surface : AppTheme.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMapFab(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: AppTheme.softShadow,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: AppTheme.textPrimary),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

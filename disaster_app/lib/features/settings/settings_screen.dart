@@ -235,6 +235,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 28),
+
+                  // RakshaSetu Brand & Zero-Cost Infrastructure Statement
+                  Center(
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            'assets/RaksaSetu.png',
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'RakshaSetu \u2022 \u0930\u0915\u094d\u0937\u093e \u0938\u0947\u0924\u0941',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'India AI Disaster Early Warning & Management Platform\nPowered by OpenStreetMap, GloFAS & NDMA Guidelines',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary.withValues(alpha: 0.8),
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 18),

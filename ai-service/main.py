@@ -25,6 +25,9 @@ from ingestors.imd_ingestor import ImdIngestor, DISTRICT_BASELINES
 from ingestors.cwc_ingestor import CwcIngestor, RIVER_STATIONS
 from models.anomaly_detector import AnomalyDetector
 from engine.risk_rules import RiskEngine
+from grid.delhi_ncr_grid import PRIMARY_STATIONS, NCR_BOUNDS
+from grid.interpolator import SpatialInterpolator, LAYER_SCALES
+from models.prediction_engine import PredictionEngine
 
 # â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:5000/api")
@@ -48,6 +51,14 @@ imd_ingestor = ImdIngestor(state="Delhi NCR")
 cwc_ingestor = CwcIngestor(state="Delhi NCR")
 anomaly_detector = AnomalyDetector(anomaly_threshold=ANOMALY_THRESHOLD)
 risk_engine = RiskEngine()
+spatial_interpolator = SpatialInterpolator(p_power=2.0)
+prediction_engine = PredictionEngine()
+
+# In-memory caches for low-latency map and forecast queries
+district_telemetry_cache = {}
+district_history_cache = {d: [] for d in PRIMARY_STATIONS.keys()}
+cached_predictions = []
+cached_grid_layers = {}
 
 
 def _push_to_backend(endpoint: str, payload: dict, label: str = "") -> bool:
@@ -98,6 +109,27 @@ async def run_scheduled_scan(surge_district: Optional[str] = None):
         rain_mm = imd_data.get("rainfall_mm", 0.0)
         wind_kmh = imd_data.get("wind_speed_kmh", 0.0)
         humidity = imd_data.get("humidity_pct", 50)
+        river_m = cwc_data.get("river_level_m", cwc_info["normal_level"])
+
+        # Cache live telemetry reading for spatial interpolator & ML history
+        district_telemetry_cache[district] = {
+            "rainfall_mm": rain_mm,
+            "temperature_c": temp_c,
+            "wind_speed_kmh": wind_kmh,
+            "river_level_m": river_m,
+            "risk_score": 20.0,
+        }
+        if district not in district_history_cache:
+            district_history_cache[district] = []
+        district_history_cache[district].append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "rainfall_mm": rain_mm,
+            "temperature_c": temp_c,
+            "wind_speed_kmh": wind_kmh,
+            "river_level_m": river_m,
+        })
+        if len(district_history_cache[district]) > 72:
+            district_history_cache[district] = district_history_cache[district][-72:]
 
         # â”€â”€ Step 2: Build telemetry batch for backend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         readings_to_ingest.extend([
@@ -247,7 +279,7 @@ async def run_scheduled_scan(surge_district: Optional[str] = None):
             if _push_to_backend("/ai-alerts/ingest", storm_payload, f"Storm alert for {district}"):
                 alerts_pushed += 1
                 anomalies_found += 1
-                print(f"[AI Service] âœ“ Storm alert pushed for {district} ({wind_kmh} km/h, {storm_sev})")
+                print(f"[AI Service] [OK] Storm alert pushed for {district} ({wind_kmh} km/h, {storm_sev})")
 
         # â”€â”€ Step 6: Flood / Rule-based Risk Assessment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         hazard_type = "FlashFlood" if rain_mm > 80 else "Flood"
@@ -273,7 +305,7 @@ async def run_scheduled_scan(surge_district: Optional[str] = None):
             }
             if _push_to_backend("/ai-alerts/ingest", payload, f"Flood alert for {district}"):
                 alerts_pushed += 1
-                print(f"[AI Service] âœ“ {hazard_type} alert pushed for {district} ({decision['final_severity']})")
+                print(f"[AI Service] [OK] {hazard_type} alert pushed for {district} ({decision['final_severity']})")
 
     # â”€â”€ Step 7: Push telemetry batch to backend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if readings_to_ingest:
@@ -283,6 +315,52 @@ async def run_scheduled_scan(surge_district: Optional[str] = None):
             "batch telemetry"
         )
         print(f"[AI Service] Batch telemetry ({len(readings_to_ingest)} readings): {'OK' if ok else 'FAILED'}")
+
+    # Step 8: ML Predictive Forecasting (XGBoost + LSTM Ensemble)
+    global cached_predictions, cached_grid_layers
+    try:
+        predictions = prediction_engine.predict_all_districts(district_history_cache)
+        cached_predictions = predictions
+
+        # Push forecast batch to backend
+        _push_to_backend(
+            "/heatmap/predictions/batch",
+            {"predictions": predictions},
+            "predictive forecasts"
+        )
+
+        # Step 9: Check for High-Risk Predictive Alerts
+        for pred in predictions:
+            if pred.get("shouldAlert", False):
+                pred_alert = {
+                    "state": pred.get("state", "Delhi NCR"),
+                    "district": pred["district"],
+                    "hazardType": pred.get("dominantHazard", "Disaster Hazard"),
+                    "score": pred["riskScores"]["composite"],
+                    "threshold": 0.60,
+                    "recommendedSeverity": pred.get("predictedSeverity", "Warning"),
+                    "suggestedCentre": pred.get("coordinates", [77.25, 28.58]),
+                    "suggestedRadiusKm": 15,
+                    "isPredictive": True,
+                    "predictionHorizon": pred.get("predictionHorizon", "6h"),
+                    "predictionDetails": pred.get("predictions", {}),
+                    "explanation": f"PREDICTIVE EARLY WARNING: {pred.get('explanation', '')}",
+                    "suggestedActions": [
+                        f"Deploy precautionary measures in {pred['district']} based on 6h ML forecast",
+                        "Monitor real-time radar and automated sensor telemetry",
+                        "Coordinate emergency response personnel staging",
+                    ],
+                }
+                if _push_to_backend("/ai-alerts/ingest", pred_alert, f"Predictive alert for {pred['district']}"):
+                    alerts_pushed += 1
+                    anomalies_found += 1
+                    print(f"[AI Service] Predictive Alert pushed for {pred['district']} (Composite Risk: {pred['riskScores']['composite']})")
+
+        # Step 10: Precompute Multi-Layer Dense Heatmap Grids
+        cached_grid_layers = spatial_interpolator.interpolate_all_layers(district_telemetry_cache)
+
+    except Exception as ml_err:
+        print(f"[AI Service] Error in ML prediction/interpolation step: {ml_err}")
 
     last_scan_info = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -418,6 +496,122 @@ def get_district_analysis(district: str):
     }
 
 
+# ── Heat Map & Predictions Endpoints ─────────────────────────────────────────
+
+@app.get("/heatmap/layers")
+def get_heatmap_layers():
+    """Returns available layers, units, and scaling ranges for heat map renderers."""
+    return {
+        "success": True,
+        "region": "Delhi NCR",
+        "bounds": NCR_BOUNDS,
+        "horizons": [
+            {"id": "now", "label": "LIVE Now", "offsetHours": 0},
+            {"id": "1h", "label": "+1 Hour", "offsetHours": 1},
+            {"id": "3h", "label": "+3 Hours", "offsetHours": 3},
+            {"id": "6h", "label": "+6 Hours", "offsetHours": 6},
+        ],
+        "layers": LAYER_SCALES,
+    }
+
+
+@app.get("/heatmap/grid")
+def get_heatmap_grid(layer: str = "rainfall", horizon: str = "now"):
+    """
+    Returns dense interpolated grid points for the requested layer and horizon.
+    Layers: 'rainfall' | 'temperature' | 'wind' | 'river' | 'risk'
+    Horizons: 'now' | '1h' | '3h' | '6h'
+    """
+    # If looking at future horizon, interpolate using predictive model outputs
+    if horizon in ["1h", "3h", "6h"] and cached_predictions:
+        pred_dict = {}
+        for p in cached_predictions:
+            d = p["district"]
+            pred_dict[d] = {}
+            preds = p.get("predictions", {})
+            pred_dict[d]["rainfall_mm"] = preds.get("rainfall_mm", {}).get("value", 0.0)
+            pred_dict[d]["temperature_c"] = preds.get("temperature_c", {}).get("value", 32.0)
+            pred_dict[d]["wind_speed_kmh"] = preds.get("wind_speed_kmh", {}).get("value", 12.0)
+            pred_dict[d]["river_level_m"] = preds.get("river_level_m", {}).get("value", 200.0)
+            pred_dict[d]["risk_score"] = p.get("riskScores", {}).get("composite", 0.25) * 100.0
+
+        pts = spatial_interpolator.interpolate_layer(
+            {d: pred_dict[d].get(
+                "rainfall_mm" if layer == "rainfall" else (
+                    "temperature_c" if layer == "temperature" else (
+                        "wind_speed_kmh" if layer == "wind" else (
+                            "risk_score" if layer == "risk" else "river_level_m"
+                        )
+                    )
+                ), 0.0
+            ) for d in PRIMARY_STATIONS.keys()},
+            layer=layer
+        )
+        return {
+            "success": True,
+            "layer": layer,
+            "horizon": horizon,
+            "isPredictive": True,
+            "count": len(pts),
+            "points": pts,
+        }
+
+    # Live 'now' grid from current cached layers
+    if layer in cached_grid_layers:
+        pts = cached_grid_layers[layer]
+    else:
+        # Fallback to computing on demand
+        pts = spatial_interpolator.interpolate_layer(
+            {d: district_telemetry_cache.get(d, {}).get("rainfall_mm", 0.0) for d in PRIMARY_STATIONS.keys()},
+            layer=layer
+        )
+
+    return {
+        "success": True,
+        "layer": layer,
+        "horizon": "now",
+        "isPredictive": False,
+        "count": len(pts),
+        "points": pts,
+    }
+
+
+@app.get("/predictions/forecast")
+def get_predictions_forecast():
+    """Returns 6-hour ensemble predictions with confidence intervals for all districts."""
+    global cached_predictions
+    if not cached_predictions:
+        cached_predictions = prediction_engine.predict_all_districts(district_history_cache)
+
+    return {
+        "success": True,
+        "source": "prediction_engine_ensemble",
+        "horizon": "6h",
+        "predictions": cached_predictions,
+    }
+
+
+@app.get("/predictions/forecast/grid")
+def get_prediction_grid():
+    """Returns spatial grid interpolated on predicted composite risk scores."""
+    if not cached_predictions:
+        get_predictions_forecast()
+
+    risk_map = {
+        p["district"]: p.get("riskScores", {}).get("composite", 0.25) * 100.0
+        for p in cached_predictions
+    }
+    pts = spatial_interpolator.interpolate_layer(risk_map, layer="risk")
+    return {
+        "success": True,
+        "layer": "composite_predicted_risk",
+        "horizon": "6h",
+        "count": len(pts),
+        "points": pts,
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+

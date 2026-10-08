@@ -4,12 +4,14 @@ import '../theme/app_theme.dart';
 // 1. Gradient Header with Tricolor Line
 class GradientHeader extends StatelessWidget {
   final String title;
+  final Widget? leading;
   final Widget? trailing;
   final double height;
 
   const GradientHeader({
     super.key,
     required this.title,
+    this.leading,
     this.trailing,
     this.height = 140,
   });
@@ -37,13 +39,22 @@ class GradientHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: AppTheme.surface,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (leading != null) ...[
+                    leading!,
+                    const SizedBox(width: 10),
+                  ],
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: AppTheme.surface,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
               ?trailing,
             ],
@@ -211,6 +222,11 @@ class PillButton extends StatelessWidget {
               ? const BorderSide(color: Colors.white24)
               : BorderSide.none,
         ),
+      ).copyWith(
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) return bg.withValues(alpha: 0.5);
+          return bg;
+        }),
       ),
       icon: Icon(icon, size: 18, color: fg),
       label: Flexible(

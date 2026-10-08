@@ -196,7 +196,16 @@ class _AlertScreenState extends State<AlertScreen> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24),
                         child: GradientHeader(
-                          title: 'India Disaster Alert',
+                          title: t.translate('app_name'),
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(
+                              'assets/RaksaSetu.png',
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                           trailing: GestureDetector(
                             onTap: _initData,
                             child: Container(
@@ -610,6 +619,17 @@ class _AlertScreenState extends State<AlertScreen> {
                     color: AppTheme.textPrimary,
                   ),
                 ),
+                if (_distanceKm != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    '${_distanceKm!.toStringAsFixed(1)} km from threat perimeter',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 6),
                 Text(
                   alert.title,

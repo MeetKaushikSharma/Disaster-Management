@@ -177,4 +177,50 @@ class ApiService {
       return false;
     }
   }
+
+  // ── Heat Map & Predictions API ─────────────────────────────────────────────
+  Future<List<HeatPoint>> getHeatmapGrid({String layer = 'rainfall', String horizon = 'now'}) async {
+    try {
+      final baseUrl = await _getBaseUrl();
+      final res = await http.get(
+        Uri.parse('$baseUrl/api/heatmap/grid?layer=$layer&horizon=$horizon'),
+      ).timeout(const Duration(seconds: 8));
+
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        if (data['points'] is List) {
+          return (data['points'] as List)
+              .map((p) => HeatPoint.fromJson(p as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('Heatmap grid error: $e');
+    }
+    return [];
+  }
 }
+
+class HeatPoint {
+  final double lat;
+  final double lng;
+  final double value;
+  final double intensity;
+
+  HeatPoint({
+    required this.lat,
+    required this.lng,
+    required this.value,
+    required this.intensity,
+  });
+
+  factory HeatPoint.fromJson(Map<String, dynamic> json) {
+    return HeatPoint(
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lng: (json['lng'] as num?)?.toDouble() ?? 0.0,
+      value: (json['value'] as num?)?.toDouble() ?? 0.0,
+      intensity: (json['intensity'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
