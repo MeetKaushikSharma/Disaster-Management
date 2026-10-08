@@ -178,7 +178,22 @@ class _AlertScreenState extends State<AlertScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t.translate('app_name')),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                'assets/RaksaSetu.png',
+                width: 28,
+                height: 28,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(t.translate('app_name')),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),

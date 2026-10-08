@@ -202,3 +202,59 @@ export interface SituationalAwarenessSummary {
   totalReports: number;
 }
 
+// ── Heat Map & ML Prediction Types ──────────────────────────────────────────
+
+export interface HeatmapGridPoint {
+  lat: number;
+  lng: number;
+  value: number;
+  intensity: number;
+  nearestDistrict?: string;
+}
+
+export interface HeatmapLayerMeta {
+  id: string;
+  name: string;
+  unit: string;
+  min: number;
+  max: number;
+  gradient: Record<string, string>;
+}
+
+export interface PredictionMetric {
+  value: number;
+  confidence: number;
+  range: [number, number];
+}
+
+export interface DistrictForecast {
+  district: string;
+  state?: string;
+  coordinates?: [number, number];
+  predictionHorizon: string;
+  modelUsed: string;
+  timestamp?: string;
+  predictions: {
+    rainfall_6h?: PredictionMetric;
+    temperature_6h?: PredictionMetric;
+    wind_speed_6h?: PredictionMetric;
+    river_level_6h?: PredictionMetric;
+    rainfall_mm?: PredictionMetric;
+    temperature_c?: PredictionMetric;
+    wind_speed_kmh?: PredictionMetric;
+    river_level_m?: PredictionMetric;
+    [key: string]: any;
+  };
+  riskScores: {
+    flood: number;
+    riverBreach?: number;
+    storm: number;
+    heatwave: number;
+    composite: number;
+  };
+  predictedSeverity: 'Advisory' | 'Watch' | 'Warning' | 'Emergency' | string;
+  dominantHazard?: string;
+  explanation?: string;
+}
+
+

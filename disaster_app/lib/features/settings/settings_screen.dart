@@ -254,14 +254,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
 
-            // Zero-Cost Infrastructure Statement
-            const Center(
-              child: Text(
-                '100% Free & Open Source Architecture\nPowered by OpenStreetMap & NDMA Guidelines',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, color: AppTheme.grey500, height: 1.5),
+            // RakshaSetu Brand & Zero-Cost Infrastructure Statement
+            Center(
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/RaksaSetu.png',
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'RakshaSetu • रक्षा सेतु',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                      color: AppTheme.black,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'India AI Disaster Early Warning & Management Platform\nPowered by OpenStreetMap, GloFAS & NDMA Guidelines',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11, color: AppTheme.grey600, height: 1.4),
+                  ),
+                ],
               ),
             ),
           ],

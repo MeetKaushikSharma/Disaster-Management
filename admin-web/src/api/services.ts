@@ -117,3 +117,32 @@ export const getLogStats = () =>
 export const getEventLogs = (eventId: string) =>
   api.get<{ success: boolean; stats: object; logs: AlertLog[] }>(`/logs/event/${eventId}`);
 
+// ── Heat Map & Predictions ───────────────────────────────────────────────────
+export const getHeatmapLayers = () =>
+  api.get<{
+    success: boolean;
+    region: string;
+    bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number; center: [number, number]; zoom: number };
+    horizons: { id: string; label: string; offsetHours: number }[];
+    layers: Record<string, any>;
+  }>('/heatmap/layers');
+
+export const getHeatmapGrid = (layer: string = 'rainfall', horizon: string = 'now') =>
+  api.get<{
+    success: boolean;
+    source: string;
+    layer: string;
+    horizon: string;
+    count: number;
+    points: import('../types').HeatmapGridPoint[];
+  }>('/heatmap/grid', { params: { layer, horizon } });
+
+export const getPredictionsForecast = () =>
+  api.get<{
+    success: boolean;
+    source: string;
+    horizon: string;
+    predictions: import('../types').DistrictForecast[];
+  }>('/heatmap/predictions');
+
+

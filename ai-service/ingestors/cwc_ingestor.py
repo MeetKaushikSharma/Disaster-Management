@@ -105,26 +105,8 @@ RIVER_STATIONS = {
 }
 
 
-def _fetch_owm_weather(city: str) -> dict | None:
-    """Calls OWM Current Weather API and returns the JSON response."""
-    if not OWM_API_KEY:
-        logger.debug("[CWC Ingestor] OPENWEATHER_API_KEY not configured; using fallback baseline.")
-        return None
-    try:
-        resp = requests.get(
-            OWM_BASE_URL,
-            params={
-                "q": city,
-                "appid": OWM_API_KEY,
-                "units": "metric",
-            },
-            timeout=8,
-        )
-        resp.raise_for_status()
-        return resp.json()
-    except requests.RequestException as exc:
-        logger.warning(f"[CWC Ingestor] OWM request failed for '{city}': {exc}")
-        return None
+from ingestors.weather_client import fetch_owm_weather as _fetch_owm_weather
+
 
 
 def _gauge_from_weather(normal_level: float, warning_level: float, danger_level: float, owm: dict) -> tuple[float, str, float]:
@@ -212,6 +194,7 @@ class CwcIngestor:
 
         # ── Live fetch from OWM ──────────────────────────────────────────────
         owm_raw = None
+        om_data = None
         rain_1h = 0.0
         rain_3h = 0.0
         humidity = 60
@@ -233,10 +216,36 @@ class CwcIngestor:
                     normal_level, warning_level, danger_level, owm_raw
                 )
             else:
-                # OWM unavailable — use simulated baseline
-                current_level = round(normal_level + random.uniform(-0.2, 0.3), 2)
-                rate = round(random.uniform(-0.01, 0.01), 3)
-                trend = "Steady"
+                # Fallback to free Open-Meteo GloFAS Flood API (Zero-Cost, No Key)
+                om_data = None
+                try:
+                    from ingestors.open_meteo_ingestor import OpenMeteoIngestor
+                    om_ingestor = OpenMeteoIngestor()
+                    om_data = om_ingestor.get_district_telemetry(
+                        district, info["lat"], info["lng"]
+                    )
+                except Exception as om_err:
+                    logger.debug(f"[CWC Ingestor] Open-Meteo fallback failed: {om_err}")
+
+                if om_data:
+                    discharge = float(om_data.get("river_discharge_m3s", 0.0))
+                    discharge_ratio = float(om_data.get("discharge_ratio", 0.0))
+                    # Scale gauge level according to GloFAS discharge
+                    level_delta = (danger_level - normal_level) * min(1.3, discharge_ratio * 1.5)
+                    current_level = round(normal_level + level_delta, 2)
+                    rate = round(discharge_ratio * 0.05, 3)
+                    trend = "Rising Rapidly" if current_level >= danger_level else (
+                        "Rising" if rate > 0.01 else "Steady"
+                    )
+                    rain_1h = round(float(om_data.get("rainfall_mm", 0.0)) / 12.0, 2)
+                    rain_3h = round(rain_1h * 3.0, 2)
+                    weather_desc = f"GloFAS Discharge: {discharge} m3/s"
+                    owm_fetched = True
+                else:
+                    # Simulated baseline if all APIs are offline
+                    current_level = round(normal_level + random.uniform(-0.2, 0.3), 2)
+                    rate = round(random.uniform(-0.01, 0.01), 3)
+                    trend = "Steady"
 
         if simulate_surge:
             # Extreme flood surge simulation
@@ -250,7 +259,7 @@ class CwcIngestor:
             rain_3h = round(random.uniform(80, 150), 1)
 
         return {
-            "source": "CWC+OWM",
+            "source": "Open-Meteo GloFAS" if (not owm_raw and om_data) else "CWC+OWM",
             "state": info.get("state", self.state),
             "district": district,
             "river": info["river"],

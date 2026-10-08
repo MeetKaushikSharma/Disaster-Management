@@ -28,6 +28,8 @@ const officialWarningRoutes = require('./routes/officialWarnings');
 const aiAlertRoutes = require('./routes/aiAlerts');
 const citizenRoutes = require('./routes/citizens');
 const capFeedRoutes = require('./routes/capFeeds');
+const mlFeatureRoutes = require('./routes/mlFeatures');
+const heatmapRoutes = require('./routes/heatmap');
 
 const app = express();
 
@@ -99,6 +101,8 @@ app.use('/api/official-warnings', officialWarningRoutes);
 app.use('/api/ai-alerts', aiAlertRoutes);
 app.use('/api/citizens', citizenRoutes);
 app.use('/api/feeds', capFeedRoutes);
+app.use('/api/ml-features', mlFeatureRoutes);
+app.use('/api/heatmap', heatmapRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((req, res) => {
