@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/widgets/shared_widgets.dart';
 
 class SosScreen extends StatelessWidget {
   final AppLocalizations localizations;
@@ -53,6 +54,28 @@ class SosScreen extends StatelessWidget {
     },
   ];
 
+  // Icons for each helpline by index
+  static IconData _iconForIndex(int idx) {
+    switch (idx) {
+      case 0:
+        return Icons.emergency_rounded;
+      case 1:
+        return Icons.campaign_rounded;
+      case 2:
+        return Icons.account_balance_rounded;
+      case 3:
+        return Icons.local_hospital_rounded;
+      case 4:
+        return Icons.local_fire_department_rounded;
+      case 5:
+        return Icons.local_police_rounded;
+      case 6:
+        return Icons.shield_rounded;
+      default:
+        return Icons.phone_rounded;
+    }
+  }
+
   Future<void> _makeCall(BuildContext context, String number) async {
     final uri = Uri.parse('tel:$number');
     try {
@@ -79,68 +102,48 @@ class SosScreen extends StatelessWidget {
     final t = localizations;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.translate('nav_sos')),
-      ),
+      backgroundColor: AppTheme.background,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(bottom: 120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Emergency Banner
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.black,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t.translate('sos_title').toUpperCase(),
-                    style: const TextStyle(
-                      color: AppTheme.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
+            // Gradient Header
+            GradientHeader(
+              title: t.translate('nav_sos'),
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                ),
+                child: const Text(
+                  'Works Offline',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    t.translate('sos_subtitle'),
-                    style: const TextStyle(
-                      color: AppTheme.grey300,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
 
-            const SizedBox(height: 16),
+            // Tricolor line (the GradientHeader already has this built-in)
 
-            // Helplines List
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: helplines.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, idx) {
-                final item = helplines[idx];
-                final isPriority = item['priority'] == 'true';
+            const SizedBox(height: 8),
 
-                return Container(
-                  padding: const EdgeInsets.all(16),
+            // National Emergency (hero card)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GestureDetector(
+                onTap: () => _makeCall(context, '112'),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.white,
-                    border: Border.all(
-                      color: isPriority ? AppTheme.black : AppTheme.grey300,
-                      width: isPriority ? 2.0 : 1.0,
-                    ),
-                    borderRadius: BorderRadius.circular(4),
+                    color: const Color(0xFFFEE2E2), // light red wash
+                    borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                    boxShadow: AppTheme.softShadow,
                   ),
                   child: Row(
                     children: [
@@ -148,54 +151,178 @@ class SosScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              item['title']!,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.black,
+                            const Text(
+                              'National Emergency',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              item['subtitle']!,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppTheme.grey600,
-                                height: 1.3,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'TEL: ${item['number']!}',
-                              style: const TextStyle(
-                                fontSize: 13,
+                            const Text(
+                              '112',
+                              style: TextStyle(
+                                fontSize: 40,
                                 fontWeight: FontWeight.w800,
-                                color: AppTheme.black,
-                                letterSpacing: 0.8,
+                                color: AppTheme.textPrimary,
+                                height: 1.1,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.black,
-                          foregroundColor: AppTheme.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: AppTheme.dangerRed,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.dangerRed.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            ),
+                          ],
                         ),
-                        icon: const Icon(Icons.phone_in_talk, size: 16),
-                        label: Text(
-                          t.translate('call_now'),
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
-                        ),
-                        onPressed: () => _makeCall(context, item['number']!),
+                        child: const Icon(Icons.phone_rounded, color: Colors.white, size: 28),
                       ),
                     ],
                   ),
-                );
-              },
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Remaining helplines
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: helplines.length - 1, // skip first (already shown as hero)
+                separatorBuilder: (context, index) => const SizedBox(height: 10),
+                itemBuilder: (context, idx) {
+                  final actualIdx = idx + 1; // offset because hero is index 0
+                  final item = helplines[actualIdx];
+
+                  return GestureDetector(
+                    onTap: () => _makeCall(context, item['number']!),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                        boxShadow: AppTheme.softShadow,
+                      ),
+                      child: Row(
+                        children: [
+                          // Icon
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppTheme.background,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              _iconForIndex(actualIdx),
+                              size: 24,
+                              color: AppTheme.deepBlue,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          // Title + Number
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item['title']!,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  item['number']!,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Green call button
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppTheme.safeGreen,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.safeGreen.withValues(alpha: 0.25),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.phone_rounded, color: Colors.white, size: 22),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Share location via SMS card
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                  boxShadow: AppTheme.softShadow,
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.near_me_rounded, size: 28, color: AppTheme.deepBlue),
+                    SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Share my location via SMS',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Send your coordinates in one tap',
+                            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

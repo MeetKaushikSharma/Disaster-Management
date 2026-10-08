@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/guide_model.dart';
 import '../../core/services/api_service.dart';
+import '../../core/widgets/shared_widgets.dart';
 
 class GuideDetailScreen extends StatefulWidget {
   final String disasterType;
@@ -63,71 +64,105 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text('${widget.disasterType.toUpperCase()} PROTOCOL'),
+        backgroundColor: AppTheme.background,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: AppTheme.softShadow,
+            ),
+            child: const Icon(Icons.arrow_back_rounded, size: 20, color: AppTheme.textPrimary),
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          '${widget.disasterType.toUpperCase()} PROTOCOL',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textPrimary,
+            letterSpacing: 0.5,
+          ),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.black))
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.deepBlue))
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppTheme.grey100,
-                      border: Border.all(color: AppTheme.grey300),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+                  // Header Card
+                  SectionCard(
+                    backgroundColor: AppTheme.deepBlue.withValues(alpha: 0.06),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: AppTheme.black,
-                                borderRadius: BorderRadius.circular(2),
+                                color: AppTheme.deepBlue,
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 _guide!.disasterType.toUpperCase(),
                                 style: const TextStyle(
-                                  color: AppTheme.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.surface,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
                             const Spacer(),
-                            const Icon(Icons.check_circle_outline, size: 14, color: AppTheme.grey600),
-                            const SizedBox(width: 4),
-                            const Text(
-                              'Offline Verified',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.grey600),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppTheme.safeGreen.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.check_circle, size: 14, color: AppTheme.safeGreen),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Offline Verified',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.safeGreen,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 14),
                         Text(
                           _guide!.title,
                           style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
                           ),
                         ),
                         if (_guide!.summary.isNotEmpty) ...[
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           Text(
                             _guide!.summary,
                             style: const TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.grey700,
-                              height: 1.4,
+                              fontSize: 14,
+                              color: AppTheme.textSecondary,
+                              height: 1.5,
                             ),
                           ),
                         ],
@@ -141,9 +176,9 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
                     'STEP-BY-STEP ACTION CHECKLIST',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
-                      color: AppTheme.black,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -153,7 +188,7 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _guide!.steps.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final step = _guide!.steps[index];
                       final isChecked = _checkedSteps.contains(step.order);
@@ -168,49 +203,52 @@ class _GuideDetailScreenState extends State<GuideDetailScreen> {
                             }
                           });
                         },
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: isChecked ? AppTheme.grey100 : AppTheme.white,
-                            border: Border.all(
-                              color: isChecked ? AppTheme.grey400 : AppTheme.black,
-                              width: 1.2,
-                            ),
-                            borderRadius: BorderRadius.circular(4),
+                            color: isChecked
+                                ? AppTheme.safeGreen.withValues(alpha: 0.08)
+                                : AppTheme.surface,
+                            borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                            boxShadow: isChecked ? null : AppTheme.softShadow,
+                            border: isChecked
+                                ? Border.all(color: AppTheme.safeGreen.withValues(alpha: 0.3))
+                                : null,
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                width: 22,
-                                height: 22,
+                                width: 28,
+                                height: 28,
                                 decoration: BoxDecoration(
-                                  color: isChecked ? AppTheme.black : AppTheme.white,
-                                  border: Border.all(color: AppTheme.black, width: 1.5),
-                                  borderRadius: BorderRadius.circular(3),
+                                  color: isChecked ? AppTheme.safeGreen : AppTheme.background,
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: isChecked
-                                    ? const Icon(Icons.check, size: 16, color: AppTheme.white)
+                                    ? const Icon(Icons.check_rounded, size: 18, color: Colors.white)
                                     : Center(
                                         child: Text(
                                           '${step.order}',
                                           style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w800,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.textPrimary,
                                           ),
                                         ),
                                       ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 14),
                               Expanded(
                                 child: Text(
                                   step.instruction,
                                   style: TextStyle(
-                                    fontSize: 13,
-                                    height: 1.45,
+                                    fontSize: 14,
+                                    height: 1.5,
                                     fontWeight: FontWeight.w500,
                                     decoration: isChecked ? TextDecoration.lineThrough : null,
-                                    color: isChecked ? AppTheme.grey500 : AppTheme.black,
+                                    color: isChecked ? AppTheme.textSecondary : AppTheme.textPrimary,
                                   ),
                                 ),
                               ),

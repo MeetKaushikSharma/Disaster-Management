@@ -65,8 +65,8 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
               point: centre,
               radius: (ev.radiusKm! + ev.bufferRadiusKm) * 1000,
               useRadiusInMeter: true,
-              color: AppTheme.grey400.withValues(alpha: 0.2),
-              borderColor: AppTheme.grey600,
+              color: const Color(0xFFFBBF24).withValues(alpha: 0.25),
+              borderColor: const Color(0xFFF59E0B),
               borderStrokeWidth: 1.5,
             ),
           );
@@ -77,8 +77,8 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
             point: centre,
             radius: ev.radiusKm! * 1000,
             useRadiusInMeter: true,
-            color: AppTheme.black.withValues(alpha: 0.35),
-            borderColor: AppTheme.black,
+            color: AppTheme.dangerRed.withValues(alpha: 0.3),
+            borderColor: AppTheme.dangerRed,
             borderStrokeWidth: 2.0,
           ),
         );
@@ -93,8 +93,8 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
         polygons.add(
           Polygon(
             points: pts,
-            color: AppTheme.black.withValues(alpha: 0.3),
-            borderColor: AppTheme.black,
+            color: AppTheme.dangerRed.withValues(alpha: 0.25),
+            borderColor: AppTheme.dangerRed,
             borderStrokeWidth: 2.5,
           ),
         );
@@ -102,20 +102,12 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.translate('nav_map')),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.my_location_rounded),
-            tooltip: 'Center on my location',
-            onPressed: _centerOnUser,
-          ),
-        ],
-      ),
+      backgroundColor: AppTheme.background,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.black))
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.deepBlue))
           : Stack(
               children: [
+                // --- Map ---
                 FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
@@ -134,17 +126,28 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
                     CircleLayer(circles: circles),
                     // Hazard Polygons
                     PolygonLayer(polygons: polygons),
-                    // User Location Marker
+                    // User Location Marker — blue dot with white border
                     MarkerLayer(
                       markers: [
                         Marker(
                           point: LatLng(_userLat, _userLng),
                           width: 44,
                           height: 44,
-                          child: const Icon(
-                            Icons.person_pin_circle,
-                            color: AppTheme.black,
-                            size: 38,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.deepBlue,
+                              border: Border.all(color: Colors.white, width: 3),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.deepBlue.withValues(alpha: 0.35),
+                                  blurRadius: 12,
+                                  spreadRadius: 4,
+                                ),
+                              ],
+                            ),
+                            width: 22,
+                            height: 22,
                           ),
                         ),
                       ],
@@ -152,68 +155,194 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
                   ],
                 ),
 
-                // Map Legend Overlay (Strict B&W)
-                Positioned(
-                  bottom: 20,
-                  left: 16,
-                  right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.white,
-                      border: Border.all(color: AppTheme.black, width: 1.5),
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x22000000),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
+                // --- Top overlays ---
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 8),
+                        // Search bar
+                        Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppTheme.surface,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: AppTheme.softShadow,
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 16),
+                              const Icon(Icons.search, size: 22, color: AppTheme.textSecondary),
+                              const SizedBox(width: 10),
+                              Text(
+                                t.translate('search_guides'),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Filter chips row
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildFilterChip('Hazards', Icons.warning_amber_rounded, false),
+                              const SizedBox(width: 8),
+                              _buildFilterChip('Shelters', Icons.home_rounded, true),
+                              const SizedBox(width: 8),
+                              _buildFilterChip('Hospitals', Icons.local_hospital_rounded, false),
+                              const SizedBox(width: 8),
+                              _buildFilterChip('Relief Camps', Icons.people_alt_rounded, false),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // GPS coordinates pill
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surface,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: AppTheme.softShadow,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.gps_fixed, size: 14, color: AppTheme.textSecondary),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${_userLat.toStringAsFixed(4)}°N, ${_userLng.toStringAsFixed(4)}°E, LIVE',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  ),
+                ),
+
+                // --- FABs on right side ---
+                Positioned(
+                  right: 16,
+                  bottom: 200,
+                  child: Column(
+                    children: [
+                      _buildMapFab(Icons.gps_fixed, 'Recenter', _centerOnUser),
+                      const SizedBox(height: 12),
+                      _buildMapFab(Icons.layers_outlined, 'Layers', () {}),
+                    ],
+                  ),
+                ),
+
+                // --- Bottom info card ---
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 100, // above the floating nav bar
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                      boxShadow: AppTheme.softShadow,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        const Text(
+                          'Nearest Shelter',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Community Relief Centre',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          '1.4 km, 18 min walk',
+                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                        ),
+                        const SizedBox(height: 14),
                         Row(
                           children: [
+                            // Capacity bar
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Capacity 62%',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      value: 0.62,
+                                      backgroundColor: AppTheme.background,
+                                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.safeGreen),
+                                      minHeight: 6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // Navigate button
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.inkNavy,
+                                foregroundColor: AppTheme.surface,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              ),
+                              icon: const Icon(Icons.navigation_rounded, size: 18),
+                              label: const Text(
+                                'Navigate',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                              ),
+                              onPressed: () {},
+                            ),
+                            const SizedBox(width: 8),
+                            // Call button
                             Container(
-                              width: 12,
-                              height: 12,
-                              decoration: const BoxDecoration(
-                                color: AppTheme.black,
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
+                                border: Border.all(color: AppTheme.textSecondary.withValues(alpha: 0.3)),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.phone_rounded, size: 20, color: AppTheme.textPrimary),
+                                onPressed: () {},
+                                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            const Text('You', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Container(
-                              width: 14,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: AppTheme.grey800.withValues(alpha: 0.4),
-                                border: Border.all(color: AppTheme.black, width: 1.5),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text('Disaster Zone', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Container(
-                              width: 14,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: AppTheme.grey300.withValues(alpha: 0.3),
-                                border: Border.all(color: AppTheme.grey600, width: 1.2),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text('Buffer (Fan-out)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                           ],
                         ),
                       ],
@@ -222,6 +351,61 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, IconData icon, bool isSelected) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? AppTheme.deepBlue : AppTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: isSelected ? null : AppTheme.softShadow,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: isSelected ? AppTheme.surface : AppTheme.textPrimary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? AppTheme.surface : AppTheme.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMapFab(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: AppTheme.textPrimary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
