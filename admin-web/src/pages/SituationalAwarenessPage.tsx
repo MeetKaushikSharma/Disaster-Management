@@ -11,7 +11,7 @@ import { INDIA_STATES } from '../data/indiaStates';
 import type { CitizenCheckIn, SituationalAwarenessSummary } from '../types';
 import './SituationalAwarenessPage.css';
 
-const districts = [...new Set(INDIA_STATES.flatMap((state) => state.districts))].sort((a, b) => a.localeCompare(b));
+const districts = INDIA_STATES.flatMap((state) => state.districts).sort((a, b) => a.localeCompare(b));
 
 function formatTime(value: string) {
   const date = new Date(value);
@@ -322,7 +322,7 @@ function DistrictCombobox({ value, districts: options, onChange }: { value: stri
               role="option"
               aria-selected={selected}
               tabIndex={-1}
-              key={district}
+              key={`${district}-${index}`}
               onMouseEnter={() => setHighlightedIndex(optionIndex)}
               onClick={() => select(district)}
             >

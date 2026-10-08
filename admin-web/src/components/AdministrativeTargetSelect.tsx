@@ -62,7 +62,9 @@ export default function AdministrativeTargetSelect({
   const filteredStates = useMemo(() => {
     const q = stateSearch.trim().toLowerCase();
     if (!q) return INDIA_STATES;
-    return INDIA_STATES.filter((s) => s.name.toLowerCase().includes(q));
+    return INDIA_STATES.filter(
+      (s) => s.name.toLowerCase().includes(q) || (s.code && s.code.toLowerCase().includes(q))
+    );
   }, [stateSearch]);
 
   // Grouped districts for selected states
