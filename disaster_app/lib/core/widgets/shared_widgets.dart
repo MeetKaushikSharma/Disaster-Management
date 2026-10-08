@@ -7,7 +7,12 @@ class GradientHeader extends StatelessWidget {
   final Widget? trailing;
   final double height;
 
-  const GradientHeader({super.key, required this.title, this.trailing, this.height = 140});
+  const GradientHeader({
+    super.key,
+    required this.title,
+    this.trailing,
+    this.height = 140,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +45,7 @@ class GradientHeader extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              if (trailing != null) trailing!,
+              ?trailing,
             ],
           ),
           // Tricolor bottom edge
@@ -85,7 +90,11 @@ class GlassGpsCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.location_on_outlined, size: 18, color: AppTheme.textPrimary),
+          const Icon(
+            Icons.location_on_outlined,
+            size: 18,
+            color: AppTheme.textPrimary,
+          ),
           const SizedBox(width: 8),
           Text(
             gpsText,
@@ -99,7 +108,7 @@ class GlassGpsCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: AppTheme.safeGreen.withOpacity(0.1),
+              color: AppTheme.safeGreen.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -152,7 +161,9 @@ class SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        boxShadow: backgroundColor == AppTheme.surface ? AppTheme.softShadow : null,
+        boxShadow: backgroundColor == AppTheme.surface
+            ? AppTheme.softShadow
+            : null,
       ),
       child: child,
     );
@@ -178,53 +189,41 @@ class PillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg;
-    Color fg = AppTheme.surface;
-    Color? outline;
-
-    switch (style) {
-      case PillButtonStyle.green:
-        bg = AppTheme.safeGreen;
-        fg = AppTheme.textPrimary; // assuming black text on green based on image? Wait, let's use textPrimary. Actually it says "green I AM SAFE" with black text in the image. I will adjust below.
-        break;
-      case PillButtonStyle.red:
-        bg = AppTheme.dangerRed;
-        break;
-      case PillButtonStyle.black:
-        bg = AppTheme.inkNavy;
-        outline = AppTheme.dangerRed;
-        break;
-    }
-
-    if (style == PillButtonStyle.green) {
-      bg = const Color(0xFFC6F4D6); // light green
-      fg = AppTheme.textPrimary;
-    }
-    if (style == PillButtonStyle.red) {
-      bg = const Color(0xFFFFD4D4); // light red
-      fg = AppTheme.textPrimary;
-    }
+    final bg = switch (style) {
+      PillButtonStyle.green => const Color(0xFFBFEFD2),
+      PillButtonStyle.red => const Color(0xFFFFD2D6),
+      PillButtonStyle.black => AppTheme.inkNavy,
+    };
+    final fg = style == PillButtonStyle.black
+        ? Colors.white
+        : AppTheme.textPrimary;
 
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
-        backgroundColor: style == PillButtonStyle.black ? bg : null,
-        foregroundColor: style == PillButtonStyle.black ? fg : null,
+        backgroundColor: bg,
+        foregroundColor: fg,
         elevation: 0,
         minimumSize: const Size(0, AppTheme.buttonHeight),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(26),
-          side: outline != null ? BorderSide(color: outline, width: 1) : BorderSide.none,
+          borderRadius: BorderRadius.circular(18),
+          side: style == PillButtonStyle.black
+              ? const BorderSide(color: Colors.white24)
+              : BorderSide.none,
         ),
-      ).copyWith(
-        backgroundColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.disabled)) return bg.withOpacity(0.5);
-          return style == PillButtonStyle.black ? bg : bg; // bg assigned above
-        }),
       ),
-      icon: Icon(icon, size: 20, color: fg),
-      label: Text(
-        label,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fg),
+      icon: Icon(icon, size: 18, color: fg),
+      label: Flexible(
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: fg,
+          ),
+        ),
       ),
       onPressed: onPressed,
     );

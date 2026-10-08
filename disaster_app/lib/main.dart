@@ -154,12 +154,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         margin: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
         decoration: BoxDecoration(
           color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: AppTheme.softShadow,
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 9),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -223,21 +223,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              height: 32,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              height: 34,
               width: 48,
               decoration: BoxDecoration(
-                color: isSelected
-                    ? AppTheme.deepBlue.withValues(alpha: 0.1)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
+                color: isSelected ? AppTheme.deepBlue : Colors.transparent,
+                borderRadius: BorderRadius.circular(15),
               ),
               child: Icon(
                 isSelected ? activeIcon : icon,
-                color: isSelected
-                    ? AppTheme.textPrimary
-                    : AppTheme.textSecondary,
-                size: 24,
+                color: isSelected ? Colors.white : AppTheme.textSecondary,
+                size: 21,
               ),
             ),
             const SizedBox(height: 4),

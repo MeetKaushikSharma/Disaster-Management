@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/services/audio_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/widgets/shared_widgets.dart';
 
@@ -20,8 +21,11 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _urlController = TextEditingController();
+  final AudioService _audioService = AudioService();
   String _currentLang = 'en';
   String _selectedDistrict = 'Varanasi';
+  double _sirenVolume = 1.0;
+  int _offlineGuideCount = 0;
 
   static const List<Map<String, String>> _districts = [
     {'code': 'Varanasi', 'name': 'Varanasi (Ganga Basin, UP)'},
@@ -37,254 +41,488 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _currentLang = widget.localizations.languageCode;
+    _sirenVolume = _audioService.volume;
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
     final url = await StorageService.getBackendUrl();
     final district = await StorageService.getDistrict();
-    _urlController.text = url;
-    _selectedDistrict = district;
-    setState(() {});
+    final guides = await StorageService.getGuides();
+    if (!mounted) return;
+    setState(() {
+      _urlController.text = url;
+      _selectedDistrict = district;
+      _offlineGuideCount = guides.length;
+    });
   }
 
   Future<void> _saveDistrict(String district) async {
     await StorageService.setDistrict(district);
+    if (!mounted) return;
     setState(() => _selectedDistrict = district);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Monitoring district set to $district.')),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Monitoring district set to $district.')),
+    );
   }
 
   Future<void> _saveUrl() async {
     final url = _urlController.text.trim();
-    if (url.isNotEmpty) {
-      await StorageService.setBackendUrl(url);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Backend API URL saved.')),
-        );
-      }
-    }
+    if (url.isEmpty) return;
+    await StorageService.setBackendUrl(url);
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Backend API URL saved.')));
+  }
+
+  void _setVolume(double value) {
+    setState(() => _sirenVolume = value);
+    _audioService.setVolume(value);
+  }
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = widget.localizations;
-
     return Scaffold(
       backgroundColor: AppTheme.background,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 120),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 64, 24, 0),
-              child: Row(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 26, 20, 120),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Settings',
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -1.1,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
+
+              _buildCard(
+                title: 'ALERTS',
                 children: [
-                  const Icon(Icons.settings_rounded, size: 28, color: AppTheme.textPrimary),
-                  const SizedBox(width: 12),
-                  Text(
-                    t.translate('nav_settings'),
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text('Siren Volume', style: _rowStyle),
+                      ),
+                      Text(
+                        '${(_sirenVolume * 100).round()}%',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 5,
+                      activeTrackColor: AppTheme.inkNavy,
+                      inactiveTrackColor: const Color(0xFFD9DEE7),
+                      thumbColor: Colors.white,
+                      overlayColor: AppTheme.inkNavy.withValues(alpha: .08),
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 12,
+                      ),
+                    ),
+                    child: Slider(
+                      value: _sirenVolume,
+                      min: 0,
+                      max: 1,
+                      onChanged: _setVolume,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  _infoRow(
+                    Icons.volume_up_outlined,
+                    'Emergency siren is ready for high-priority alerts.',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              _buildCard(
+                title: 'LOCATION',
+                children: [
+                  _settingRow(
+                    icon: Icons.location_on_outlined,
+                    title: 'Live GPS Tracking',
+                    trailing: _enabledBadge(),
+                  ),
+                  const Divider(height: 24, color: Color(0xFFE9EDF2)),
+                  _settingRow(
+                    icon: Icons.location_city_outlined,
+                    title: 'Monitoring District',
+                    trailing: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 25,
                       color: AppTheme.textPrimary,
+                    ),
+                    onTap: _showDistrictPicker,
+                  ),
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 34),
+                    child: Text(
+                      _districts.firstWhere(
+                        (d) => d['code'] == _selectedDistrict,
+                        orElse: () => _districts.first,
+                      )['name']!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 18),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              _buildCard(
+                title: 'LANGUAGE',
                 children: [
-                  // Language Selection
-                  _buildSectionLabel(t.translate('lang_select')),
-                  const SizedBox(height: 10),
-                  SectionCard(
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _currentLang,
-                        isExpanded: true,
-                        icon: const Icon(Icons.language_rounded, color: AppTheme.textSecondary),
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
-                        ),
-                        items: AppLocalizations.supportedLanguages.map((lang) {
-                          return DropdownMenuItem<String>(
-                            value: lang['code'],
-                            child: Text(lang['name']!),
-                          );
-                        }).toList(),
-                        onChanged: (newCode) {
-                          if (newCode != null && newCode != _currentLang) {
-                            setState(() => _currentLang = newCode);
-                            widget.onLanguageChanged(newCode);
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // District Selection
-                  _buildSectionLabel('EARLY WARNING ZONE / DISTRICT'),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Filter localized IMD/CWC hydrometeorological alerts and AI anomaly detections to your regional cluster.',
-                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
-                  ),
-                  const SizedBox(height: 10),
-                  SectionCard(
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _districts.any((d) => d['code'] == _selectedDistrict) ? _selectedDistrict : 'Varanasi',
-                        isExpanded: true,
-                        icon: const Icon(Icons.location_city_rounded, color: AppTheme.textSecondary),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
-                        ),
-                        items: _districts.map((item) {
-                          return DropdownMenuItem<String>(
-                            value: item['code'],
-                            child: Text(item['name']!),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            _saveDistrict(val);
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Backend Server Connection
-                  _buildSectionLabel('BACKEND SERVER CONNECTION'),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Configure the Express API URL (e.g. http://10.0.2.2:5000 for Android emulator or your local WiFi IP for physical phones).',
-                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
-                  ),
-                  const SizedBox(height: 10),
-                  SectionCard(
-                    child: TextField(
-                      controller: _urlController,
-                      style: const TextStyle(fontSize: 15, color: AppTheme.textPrimary),
-                      decoration: const InputDecoration(
-                        hintText: 'http://10.0.2.2:5000',
-                        hintStyle: TextStyle(color: AppTheme.textSecondary),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.inkNavy,
-                        foregroundColor: AppTheme.surface,
-                        elevation: 0,
-                        minimumSize: const Size(0, AppTheme.buttonHeight),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(26),
-                        ),
-                      ),
-                      onPressed: _saveUrl,
-                      child: const Text(
-                        'SAVE SERVER URL',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Battery Optimization Info
-                  SectionCard(
-                    backgroundColor: AppTheme.background,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(10),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: _showLanguagePicker,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _languageName(),
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'Hindi, and others',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: const Icon(Icons.battery_charging_full_outlined, size: 22, color: AppTheme.safeGreen),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                t.translate('battery_safe_mode'),
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'Location tracking uses smart distance filters (>500m threshold). It uses minimal battery and will not trigger background battery drain.',
-                                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
-                              ),
-                            ],
+                          const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 28,
+                            color: AppTheme.textPrimary,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Zero-Cost Infrastructure Statement
-                  Center(
-                    child: Text(
-                      '100% Free & Open Source Architecture\nPowered by OpenStreetMap & NDMA Guidelines',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textSecondary.withValues(alpha: 0.7),
-                        height: 1.5,
+                        ],
                       ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 18),
+
+              _buildCard(
+                title: 'OFFLINE DATA',
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _offlineGuideCount > 0
+                              ? '$_offlineGuideCount guides synced'
+                              : 'Guides and dialers synced',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: const BoxDecoration(
+                          color: AppTheme.safeGreen,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Offline data is already up to date.'),
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Check update',
+                      style: TextStyle(
+                        fontSize: 17,
+                        color: AppTheme.infoBlue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              _buildCard(
+                title: 'CONNECTION',
+                children: [
+                  const Text(
+                    'Backend server URL',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  TextField(
+                    controller: _urlController,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppTheme.textPrimary,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'http://10.0.2.2:5000',
+                      border: InputBorder.none,
+                      filled: true,
+                      fillColor: Color(0xFFF5F7FA),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _saveUrl,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.inkNavy,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        minimumSize: const Size(0, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      child: const Text(
+                        'SAVE SERVER URL',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              Center(
+                child: Text(
+                  'Version 1.0  •  India Disaster Alert',
+                  style: TextStyle(
+                    fontSize: 11,
+                    letterSpacing: .8,
+                    color: AppTheme.textSecondary.withValues(alpha: .8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static const _rowStyle = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w500,
+    color: AppTheme.textPrimary,
+  );
+
+  Widget _buildCard({required String title, required List<Widget> children}) {
+    return SectionCard(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: .7,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _settingRow({
+    required IconData icon,
+    required String title,
+    required Widget trailing,
+    VoidCallback? onTap,
+  }) {
+    final child = Row(
+      children: [
+        Icon(icon, size: 20, color: AppTheme.textSecondary),
+        const SizedBox(width: 12),
+        Expanded(child: Text(title, style: _rowStyle)),
+        trailing,
+      ],
+    );
+    return onTap == null
+        ? child
+        : InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onTap,
+            child: child,
+          );
+  }
+
+  Widget _enabledBadge() {
+    return Container(
+      width: 52,
+      height: 30,
+      decoration: BoxDecoration(
+        color: AppTheme.safeGreen,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 4),
+      child: Container(
+        width: 22,
+        height: 22,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 17, color: AppTheme.textSecondary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _languageName() {
+    final match = AppLocalizations.supportedLanguages
+        .where((l) => l['code'] == _currentLang)
+        .toList();
+    return match.isEmpty ? 'English' : match.first['name']!;
+  }
+
+  Future<void> _showLanguagePicker() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+          children: [
+            const Text(
+              'Select language',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            ...AppLocalizations.supportedLanguages.map(
+              (lang) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(lang['name']!),
+                trailing: lang['code'] == _currentLang
+                    ? const Icon(Icons.check_circle, color: AppTheme.safeGreen)
+                    : null,
+                onTap: () => Navigator.pop(context, lang['code']),
               ),
             ),
           ],
         ),
       ),
     );
+    if (selected != null && selected != _currentLang) {
+      setState(() => _currentLang = selected);
+      widget.onLanguageChanged(selected);
+    }
   }
 
-  Widget _buildSectionLabel(String text) {
-    return Text(
-      text.toUpperCase(),
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.5,
-        color: AppTheme.textSecondary,
+  Future<void> _showDistrictPicker() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+          children: [
+            const Text(
+              'Monitoring district',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            ..._districts.map(
+              (item) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(item['name']!),
+                trailing: item['code'] == _selectedDistrict
+                    ? const Icon(Icons.check_circle, color: AppTheme.safeGreen)
+                    : null,
+                onTap: () => Navigator.pop(context, item['code']),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+    if (selected != null) await _saveDistrict(selected);
   }
 }

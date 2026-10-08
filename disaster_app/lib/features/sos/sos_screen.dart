@@ -133,17 +133,28 @@ class SosScreen extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            // National Emergency (hero card)
+            // Emergency SOS hero
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: GestureDetector(
                 onTap: () => _makeCall(context, '112'),
                 child: Container(
-                  padding: const EdgeInsets.all(20),
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(22, 22, 18, 20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEE2E2), // light red wash
-                    borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                    boxShadow: AppTheme.softShadow,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFF13D49), Color(0xFFD92535)],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.dangerRed.withValues(alpha: 0.24),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
@@ -151,49 +162,29 @@ class SosScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'National Emergency',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              '112',
-                              style: TextStyle(
-                                fontSize: 40,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.textPrimary,
-                                height: 1.1,
-                              ),
-                            ),
+                            const Text('SOS', style: TextStyle(fontSize: 42, height: 1, fontWeight: FontWeight.w900, color: Colors.white)),
+                            const SizedBox(height: 7),
+                            const Text('Alert Authorities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                            const SizedBox(height: 5),
+                            Text('National Emergency • 112', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.86))),
                           ],
                         ),
                       ),
                       Container(
-                        width: 56,
-                        height: 56,
+                        width: 68,
+                        height: 68,
                         decoration: BoxDecoration(
-                          color: AppTheme.dangerRed,
+                          color: Colors.white.withValues(alpha: 0.18),
                           shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.dangerRed.withValues(alpha: 0.3),
-                              blurRadius: 12,
-                              spreadRadius: 2,
-                            ),
-                          ],
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
                         ),
-                        child: const Icon(Icons.phone_rounded, color: Colors.white, size: 28),
+                        child: const Icon(Icons.phone_in_talk_rounded, color: Colors.white, size: 30),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-
             const SizedBox(height: 12),
 
             // Remaining helplines

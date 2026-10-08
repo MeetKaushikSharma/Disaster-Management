@@ -25,7 +25,7 @@ class _AlertScreenState extends State<AlertScreen> {
   double _userLat = LocationService.defaultLat;
   double _userLng = LocationService.defaultLng;
   DisasterAlert? _activeAlert;
-  double? _distanceKm;
+
   String? _userId;
   Timer? _pollingTimer;
   String? _checkInStatus;
@@ -129,27 +129,6 @@ class _AlertScreenState extends State<AlertScreen> {
     if (events.isNotEmpty) {
       _activeAlert = events.first;
       await StorageService.saveActiveAlert(_activeAlert);
-
-      // Compute distance
-      if (_activeAlert?.centreCoords != null) {
-        final clng = _activeAlert!.centreCoords![0];
-        final clat = _activeAlert!.centreCoords![1];
-        _distanceKm = LocationService().calculateDistanceKm(
-          _userLat,
-          _userLng,
-          clat,
-          clng,
-        );
-      } else if (_activeAlert?.polygonCoords != null &&
-          _activeAlert!.polygonCoords!.isNotEmpty) {
-        final firstPt = _activeAlert!.polygonCoords![0];
-        _distanceKm = LocationService().calculateDistanceKm(
-          _userLat,
-          _userLng,
-          firstPt[1],
-          firstPt[0],
-        );
-      }
     } else {
       _activeAlert = await StorageService.getActiveAlert();
     }
@@ -176,7 +155,6 @@ class _AlertScreenState extends State<AlertScreen> {
 
     setState(() {
       _activeAlert = testAlert;
-      _distanceKm = 0.5;
     });
 
     AudioService().playEmergencyBuzzer();
