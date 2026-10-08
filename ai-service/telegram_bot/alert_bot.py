@@ -50,7 +50,10 @@ BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:5000/api")
 POLL_INTERVAL_SECONDS = int(os.getenv("TELEGRAM_POLL_INTERVAL", "30"))
 
 # Keep track of alert IDs already dispatched to Telegram to avoid duplicate cards
-dispatched_alerts = set()
+dispatched_alerts: set = set()
+
+# Flag: set True once bot confirms admin chat is reachable
+admin_chat_verified: bool = False
 
 
 def fetch_pending_alerts() -> List[Dict[str, Any]]:
@@ -114,18 +117,49 @@ except ImportError:
 
 async def dispatch_pending_job(context: Any):
     """Job queue callback that checks for new pending alerts and sends Telegram cards."""
-    global dispatched_alerts
+    global dispatched_alerts, admin_chat_verified
     bot = context.bot
     admin_id = context.job.data.get("admin_chat_id")
 
     if not admin_id:
         return
 
+    # === Guard: Verify admin chat is reachable before spamming alerts ===
+    if not admin_chat_verified:
+        try:
+            await bot.send_message(
+                chat_id=admin_id,
+                text=(
+                    "🤖 *RakshaSetu Disaster Early Warning Bot* — Online!\n\n"
+                    "✅ Connection established. I will now forward AI disaster alerts "
+                    "here for your review and approval.\n\n"
+                    "Use /pending to manually fetch unreviewed alerts."
+                ),
+                parse_mode="Markdown",
+            )
+            admin_chat_verified = True
+            logger.info(f"Admin chat {admin_id} verified and reachable.")
+        except Exception as exc:
+            err_str = str(exc)
+            if "Chat not found" in err_str or "chat not found" in err_str:
+                logger.error(
+                    f"ADMIN CHAT NOT FOUND (Chat ID: {admin_id}). "
+                    "To fix this: open Telegram, search for your bot, and send it /start. "
+                    "The bot cannot initiate a conversation — the admin must message first."
+                )
+            else:
+                logger.warning(f"Cannot reach admin chat {admin_id}: {exc}")
+            # Do NOT send alerts if admin chat is unreachable — avoid spam loop
+            return
+
     alerts = fetch_pending_alerts()
     for alert in alerts:
         alert_id = str(alert.get("_id") or alert.get("id"))
         if not alert_id or alert_id in dispatched_alerts:
             continue
+
+        # === Mark as dispatched FIRST to prevent infinite retry spam on send failure ===
+        dispatched_alerts.add(alert_id)
 
         text = format_alert_card(alert)
         keyboard = [
@@ -143,10 +177,9 @@ async def dispatch_pending_job(context: Any):
                 parse_mode="Markdown",
                 reply_markup=reply_markup,
             )
-            dispatched_alerts.add(alert_id)
             logger.info(f"Dispatched Telegram card for alert {alert_id} ({alert.get('district')})")
         except Exception as exc:
-            logger.error(f"Failed to send Telegram message: {exc}")
+            logger.error(f"Failed to send Telegram message for alert {alert_id}: {exc}")
 
 
 async def handle_decision_callback(update: Any, context: Any):
@@ -213,13 +246,66 @@ async def handle_decision_callback(update: Any, context: Any):
 
 
 async def cmd_start(update: Any, context: Any):
-    """Responds to /start command."""
+    """Responds to /start command — also marks admin chat as verified."""
+    global admin_chat_verified
     chat_id = update.effective_chat.id
+
+    # Auto-verify admin chat if they send /start
+    if str(chat_id) == str(ADMIN_CHAT_ID):
+        admin_chat_verified = True
+        logger.info(f"Admin chat {chat_id} verified via /start command.")
+        admin_note = "\n\n✅ *Admin Chat Verified!* I will now dispatch pending disaster alerts here."
+    else:
+        admin_note = f"\n\n⚠️ Note: Configured Admin Chat ID is `{ADMIN_CHAT_ID}`. Only the admin receives alert cards."
+
     await update.message.reply_text(
-        f"🤖 *India Disaster Early Warning Governance Bot*\n\n"
+        f"🤖 *RakshaSetu Disaster Early Warning Governance Bot*\n\n"
         f"Connected to backend: `{BACKEND_API_URL}`\n"
-        f"Your Chat ID: `{chat_id}`\n\n"
-        f"Use /pending to view unreviewed alerts or /status to check service health.",
+        f"Your Chat ID: `{chat_id}`\n"
+        f"Use /pending to view unreviewed alerts.\n"
+        f"Use /chatid to confirm your Chat ID.\n"
+        f"Use /status to check service health."
+        f"{admin_note}",
+        parse_mode="Markdown",
+    )
+
+
+async def cmd_chatid(update: Any, context: Any):
+    """Returns the current chat ID — useful for configuring ADMIN_CHAT_ID in .env."""
+    chat_id = update.effective_chat.id
+    chat_type = update.effective_chat.type
+    await update.message.reply_text(
+        f"📋 *Your Chat Information*\n\n"
+        f"Chat ID: `{chat_id}`\n"
+        f"Chat Type: `{chat_type}`\n\n"
+        f"Copy this Chat ID and set it as `ADMIN_CHAT_ID` in your `.env` file to receive alert cards here.",
+        parse_mode="Markdown",
+    )
+
+
+async def cmd_status(update: Any, context: Any):
+    """Returns health status of the bot and backend connectivity."""
+    global admin_chat_verified, dispatched_alerts
+
+    # Test backend connectivity
+    backend_ok = False
+    backend_count = 0
+    try:
+        res = requests.get(f"{BACKEND_API_URL}/ai-alerts/pending", timeout=5)
+        if res.status_code == 200:
+            backend_ok = True
+            backend_count = res.json().get("count", 0)
+    except Exception:
+        pass
+
+    status_icon = "🟢" if backend_ok else "🔴"
+    await update.message.reply_text(
+        f"📊 *RakshaSetu Bot Status*\n\n"
+        f"Admin Chat Verified: {'✅ Yes' if admin_chat_verified else '❌ No (send /start as admin)'}\n"
+        f"Alerts Dispatched (session): `{len(dispatched_alerts)}`\n"
+        f"Poll Interval: `{POLL_INTERVAL_SECONDS}s`\n\n"
+        f"{status_icon} *Backend API:* `{BACKEND_API_URL}`\n"
+        f"Pending Alerts in DB: `{backend_count}`",
         parse_mode="Markdown",
     )
 
@@ -291,6 +377,8 @@ def main():
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("pending", cmd_pending))
+    app.add_handler(CommandHandler("chatid", cmd_chatid))
+    app.add_handler(CommandHandler("status", cmd_status))
     app.add_handler(CallbackQueryHandler(handle_decision_callback))
 
     # Repeating job to poll pending alerts
