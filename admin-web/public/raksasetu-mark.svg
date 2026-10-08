@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <defs>
+    <linearGradient id="shieldGrad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF9933" />
+      <stop offset="50%" stop-color="#138808" />
+      <stop offset="100%" stop-color="#000080" />
+    </linearGradient>
+    <linearGradient id="bridgeGrad" x1="12" y1="20" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F3F4F6" />
+    </linearGradient>
+  </defs>
+  <!-- Shield Body -->
+  <path d="M24 4L8 10V22C8 32.5 14.8 42.1 24 44C33.2 42.1 40 32.5 40 22V10L24 4Z" fill="url(#shieldGrad)" />
+  <!-- Inner Protection / Setu Bridge Arch -->
+  <path d="M24 8L11 13V22C11 30.5 16.5 38.3 24 40.2C31.5 38.3 37 30.5 37 22V13L24 8Z" fill="#0B1220" opacity="0.92" />
+  <!-- Bridge Arch Structure (Setu) -->
+  <path d="M16 28C16 23.6 19.6 20 24 20C28.4 20 32 23.6 32 28V31H29V28C29 25.2 26.8 23 24 23C21.2 23 19 25.2 19 28V31H16V28Z" fill="url(#bridgeGrad)" />
+  <!-- Center Signal Beacon (Rakṣā) -->
+  <circle cx="24" cy="15" r="3" fill="#FF9933" />
+  <path d="M21 15C21 13.3 22.3 12 24 12C25.7 12 27 13.3 27 15" stroke="#FF9933" stroke-width="1.5" stroke-linecap="round" fill="none" />
+  <path d="M19 15C19 12.2 21.2 10 24 10C26.8 10 29 12.2 29 15" stroke="#138808" stroke-width="1.5" stroke-linecap="round" fill="none" />
+</svg>
