@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/models/alert_model.dart';
 import '../../../core/services/audio_service.dart';
 import '../../guides/guide_detail_screen.dart';
@@ -8,179 +7,203 @@ class AlarmDialog extends StatelessWidget {
   final DisasterAlert alert;
   final VoidCallback onDismiss;
 
-  const AlarmDialog({
-    super.key,
-    required this.alert,
-    required this.onDismiss,
-  });
+  const AlarmDialog({super.key, required this.alert, required this.onDismiss});
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, // Prevent accidental back button press from closing emergency alarm
+      canPop: false,
       child: Dialog.fullscreen(
         child: Container(
-          color: AppTheme.black,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Header
-              Column(
+          decoration: const BoxDecoration(
+            color: Color(0xFF7F1D1D), // Deep red
+            // Simulated concentric rings via radial gradients
+            gradient: RadialGradient(
+              colors: [Color(0xFF991B1B), Color(0xFF7F1D1D), Color(0xFF450A0A)],
+              stops: [0.1, 0.4, 1.0],
+              radius: 1.5,
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.warning_amber_rounded, color: AppTheme.black, size: 24),
-                        SizedBox(width: 8),
-                        Text(
-                          'EMERGENCY ALERT',
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'EMERGENCY ALERT',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'TEST MODE',
                           style: TextStyle(
-                            color: AppTheme.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
+                            color: Colors.black,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '${alert.severity.toUpperCase()} PRIORITY: ${alert.type.toUpperCase()}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppTheme.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    alert.title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppTheme.grey300,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
 
-              // Siren animation indicator
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppTheme.white, width: 2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.volume_up_rounded,
-                      color: AppTheme.white,
-                      size: 64,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'HEAVY BUZZER SOUNDING',
-                      style: TextStyle(
-                        color: AppTheme.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.0,
+                  // Center Content
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.warning_rounded,
+                        color: Colors.white,
+                        size: 80,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      alert.description.isNotEmpty
-                          ? alert.description
-                          : 'Immediate hazard detected in your vicinity. Evacuate or take shelter as instructed.',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppTheme.grey300,
-                        fontSize: 14,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Actions
-              Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.white,
-                        foregroundColor: AppTheme.black,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
+                      const SizedBox(height: 24),
+                      Text(
+                        alert.title.isNotEmpty
+                            ? alert.title
+                            : 'Hazard Detected',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
                         ),
                       ),
-                      onPressed: () {
-                        AudioService().stopEmergencyBuzzer();
-                        onDismiss();
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text(
-                        'ACKNOWLEDGE / STOP BUZZER',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.8,
+                      const SizedBox(height: 16),
+                      Text(
+                        alert.description.isNotEmpty
+                            ? alert.description
+                            : 'Immediate hazard detected in your vicinity. Evacuate or take shelter as instructed.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          height: 1.5,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.black.withValues(alpha: 0.2),
+                        ),
+                        child: const Text(
+                          'Active Threat Zone', // Can't resolve location without logic changes, so generic text
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.white,
-                        side: const BorderSide(color: AppTheme.grey500, width: 1.5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => GuideDetailScreen(
-                              disasterType: alert.type,
-                              language: 'en',
+
+                  // Actions
+                  Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                28,
+                              ), // Pill shape
                             ),
                           ),
-                        );
-                      },
-                      child: const Text(
-                        'VIEW SAFETY INSTRUCTIONS',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
+                          onPressed: () {
+                            AudioService().stopEmergencyBuzzer();
+                            onDismiss();
+                            Navigator.of(context).pop();
+                          },
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'STOP BUZZER',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.check_circle_outline, size: 20),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(
+                              color: Colors.white,
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                28,
+                              ), // Pill shape
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => GuideDetailScreen(
+                                  disasterType: alert.type,
+                                  language: 'en',
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'VIEW SAFETY INSTRUCTIONS',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

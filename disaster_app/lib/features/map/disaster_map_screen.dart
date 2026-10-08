@@ -5,6 +5,7 @@ import '../../core/models/alert_model.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/api_service.dart';
 import '../../core/localization/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 import 'widgets/heat_overlay.dart';
 import 'widgets/windy_map_widget.dart';
 
@@ -112,8 +113,8 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
             point: centre,
             radius: ev.radiusKm! * 1000,
             useRadiusInMeter: true,
-            color: Colors.red.withValues(alpha: 0.25),
-            borderColor: Colors.red.shade700,
+            color: AppTheme.dangerRed.withValues(alpha: 0.25),
+            borderColor: AppTheme.dangerRed,
             borderStrokeWidth: 2.0,
           ),
         );
@@ -128,8 +129,8 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
         polygons.add(
           Polygon(
             points: pts,
-            color: Colors.red.withValues(alpha: 0.25),
-            borderColor: Colors.red.shade700,
+            color: AppTheme.dangerRed.withValues(alpha: 0.25),
+            borderColor: AppTheme.dangerRed,
             borderStrokeWidth: 2.5,
           ),
         );

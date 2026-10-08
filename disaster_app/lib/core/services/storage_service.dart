@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/guide_model.dart';
 import '../models/alert_model.dart';
@@ -61,8 +62,11 @@ class StorageService {
   // Backend URL (configurable for local dev / emulator / production)
   static Future<String> getBackendUrl() async {
     final prefs = await _prefs;
-    // Defaults to local host: 10.0.2.2 for Android emulator, or localhost:5000
-    return prefs.getString(_keyBackendUrl) ?? 'http://10.0.2.2:5000';
+    final saved = prefs.getString(_keyBackendUrl);
+    if (kIsWeb && (saved == null || saved.contains('10.0.2.2'))) {
+      return 'http://localhost:5000';
+    }
+    return saved ?? 'http://10.0.2.2:5000';
   }
 
   static Future<void> setBackendUrl(String url) async {

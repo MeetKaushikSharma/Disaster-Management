@@ -12,23 +12,61 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/services/notification_service.dart';
 
+import 'package:flutter/foundation.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialise Firebase before anything else
-  await Firebase.initializeApp();
-  
-  // Set up background FCM handler
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  await AudioService().init();
-  await NotificationService().init();
+  // Initialise Firebase before anything else
+  try {
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: 'AIzaSyDRn_VilEsuGVsAsicnIHewP4IpqIMIAnQ',
+          appId: '1:182230964639:web:disaster_app',
+          messagingSenderId: '182230964639',
+          projectId: 'disaster-prevention-20355',
+          storageBucket: 'disaster-prevention-20355.firebasestorage.app',
+        ),
+      );
+    } else {
+      await Firebase.initializeApp();
+    }
+  } catch (e) {
+    debugPrint('[Firebase] Initialization notice: $e');
+  }
+
+  // Set up background FCM handler (mobile only - not supported on web)
+  if (!kIsWeb) {
+    try {
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    } catch (e) {
+      debugPrint('[FirebaseMessaging] onBackgroundMessage notice: $e');
+    }
+  }
+
+  try {
+    await AudioService().init();
+  } catch (e) {
+    debugPrint('[AudioService] init notice: $e');
+  }
+
+  try {
+    await NotificationService().init();
+  } catch (e) {
+    debugPrint('[NotificationService] init notice: $e');
+  }
 
   final initialLang = await StorageService.getLanguage();
   final localizations = AppLocalizations(initialLang);
   await localizations.load();
 
-  runApp(DisasterApp(initialLanguage: initialLang, initialLocalizations: localizations));
+  runApp(
+    DisasterApp(
+      initialLanguage: initialLang,
+      initialLocalizations: localizations,
+    ),
+  );
 }
 
 class DisasterApp extends StatefulWidget {
@@ -110,40 +148,114 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ];
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: pages,
+      extendBody: true, // Needed for floating nav
+      body: IndexedStack(index: _currentIndex, children: pages),
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildNavItem(
+                  0,
+                  'Alerts',
+                  Icons.notifications_none,
+                  Icons.notifications,
+                  t.translate('nav_alerts'),
+                ),
+                _buildNavItem(
+                  1,
+                  'Live Map',
+                  Icons.location_on_outlined,
+                  Icons.location_on,
+                  t.translate('nav_map'),
+                ),
+                _buildNavItem(
+                  2,
+                  'Safety Guides',
+                  Icons.menu_book_outlined,
+                  Icons.menu_book,
+                  t.translate('nav_guides'),
+                ),
+                _buildNavItem(
+                  3,
+                  'Emergency',
+                  Icons.phone_in_talk_outlined,
+                  Icons.phone_in_talk,
+                  t.translate('nav_sos'),
+                ),
+                _buildNavItem(
+                  4,
+                  'Settings',
+                  Icons.settings_outlined,
+                  Icons.settings,
+                  t.translate('nav_settings'),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.warning_amber_rounded),
-            activeIcon: const Icon(Icons.warning_rounded),
-            label: t.translate('nav_alerts'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.map_outlined),
-            activeIcon: const Icon(Icons.map_rounded),
-            label: t.translate('nav_map'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.menu_book_outlined),
-            activeIcon: const Icon(Icons.menu_book_rounded),
-            label: t.translate('nav_guides'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.phone_in_talk_outlined),
-            activeIcon: const Icon(Icons.phone_in_talk_rounded),
-            label: t.translate('nav_sos'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.settings_outlined),
-            activeIcon: const Icon(Icons.settings_rounded),
-            label: t.translate('nav_settings'),
-          ),
-        ],
+    );
+  }
+
+  Widget _buildNavItem(
+    int index,
+    String fallbackLabel,
+    IconData icon,
+    IconData activeIcon,
+    String label,
+  ) {
+    final isSelected = _currentIndex == index;
+    // For specific lucide icons we will integrate later. For now, use material outline/filled as placeholder
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 64, // fixed tap target
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 32,
+              width: 48,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppTheme.deepBlue.withValues(alpha: 0.1)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                isSelected ? activeIcon : icon,
+                color: isSelected
+                    ? AppTheme.textPrimary
+                    : AppTheme.textSecondary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label.isEmpty ? fallbackLabel : label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? AppTheme.textPrimary
+                    : AppTheme.textSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }

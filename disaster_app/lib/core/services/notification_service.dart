@@ -22,7 +22,14 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  FirebaseMessaging? get _messaging {
+    try {
+      return FirebaseMessaging.instance;
+    } catch (_) {
+      return null;
+    }
+  }
+
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
@@ -73,8 +80,31 @@ class NotificationService {
   Future<void> init() async {
     if (_initialised) return;
 
+    final messaging = _messaging;
+
+    if (kIsWeb) {
+      if (messaging != null) {
+        try {
+          final settings = await messaging.requestPermission(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+          debugPrint('[NotificationService] Web Permission: ${settings.authorizationStatus}');
+          FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+          FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+        } catch (e) {
+          debugPrint('[NotificationService] Web messaging notice: $e');
+        }
+      }
+      _initialised = true;
+      return;
+    }
+
+    if (messaging == null) return;
+
     // Request notification permission (required on Android 13+ and iOS)
-    final settings = await _messaging.requestPermission(
+    final settings = await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
@@ -108,7 +138,7 @@ class NotificationService {
     FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
 
     // Check if the app was opened from a terminated state via notification
-    final initialMessage = await _messaging.getInitialMessage();
+    final initialMessage = await messaging.getInitialMessage();
     if (initialMessage != null) {
       debugPrint('[NotificationService] App opened from terminated notification');
       _handleNotificationTap(initialMessage);
@@ -118,7 +148,7 @@ class NotificationService {
     await _registerFcmToken();
 
     // Listen for token refreshes
-    _messaging.onTokenRefresh.listen((newToken) {
+    messaging.onTokenRefresh.listen((newToken) {
       debugPrint('[NotificationService] FCM token refreshed');
       _sendTokenToBackend(newToken);
     });
@@ -131,7 +161,9 @@ class NotificationService {
 
   Future<void> _registerFcmToken() async {
     try {
-      final token = await _messaging.getToken();
+      final messaging = _messaging;
+      if (messaging == null) return;
+      final token = await messaging.getToken();
       if (token != null) {
         debugPrint('[NotificationService] FCM token: ${token.substring(0, 20)}…');
         await _sendTokenToBackend(token);
@@ -157,7 +189,9 @@ class NotificationService {
   /// Call this after user registration to ensure the FCM token is sent.
   Future<void> sendPendingToken(String userId) async {
     try {
-      final token = await _messaging.getToken();
+      final messaging = _messaging;
+      if (messaging == null) return;
+      final token = await messaging.getToken();
       if (token != null) {
         await ApiService().updateFcmToken(userId, token);
       }
@@ -178,39 +212,40 @@ class NotificationService {
     final severity = data['severity'] ?? 'High';
     final isRetraction = data['isRetraction'] == 'true';
 
-    // Pick the correct channel based on severity
-    String channelId;
-    switch (severity) {
-      case 'Critical':
-        channelId = 'disaster_critical_v2';
-        break;
-      case 'High':
-        channelId = 'disaster_high_v2';
-        break;
-      case 'Medium':
-        channelId = 'disaster_medium_v2';
-        break;
-      default:
-        channelId = 'disaster_low_v2';
-    }
+    // Show local notification (only on non-web platforms)
+    if (!kIsWeb) {
+      String channelId;
+      switch (severity) {
+        case 'Critical':
+          channelId = 'disaster_critical_v2';
+          break;
+        case 'High':
+          channelId = 'disaster_high_v2';
+          break;
+        case 'Medium':
+          channelId = 'disaster_medium_v2';
+          break;
+        default:
+          channelId = 'disaster_low_v2';
+      }
 
-    // Show local notification
-    _localNotifications.show(
-      message.hashCode,
-      notification.title,
-      notification.body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          channelId,
-          channelId.replaceAll('_', ' ').toUpperCase(),
-          importance: severity == 'Critical' ? Importance.max : Importance.high,
-          priority: Priority.high,
-          fullScreenIntent: severity == 'Critical',
-          playSound: true,
+      _localNotifications.show(
+        message.hashCode,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            channelId,
+            channelId.replaceAll('_', ' ').toUpperCase(),
+            importance: severity == 'Critical' ? Importance.max : Importance.high,
+            priority: Priority.high,
+            fullScreenIntent: severity == 'Critical',
+            playSound: true,
+          ),
         ),
-      ),
-      payload: json.encode(data),
-    );
+        payload: json.encode(data),
+      );
+    }
 
     // Play emergency buzzer for Critical/High severity
     if (!isRetraction && (severity == 'Critical' || severity == 'High')) {

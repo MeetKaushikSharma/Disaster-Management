@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/widgets/shared_widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AppLocalizations localizations;
@@ -74,222 +75,239 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final t = widget.localizations;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.translate('nav_settings')),
-      ),
+      backgroundColor: AppTheme.background,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.only(bottom: 120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Language Selection Section
-            Text(
-              t.translate('lang_select').toUpperCase(),
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: AppTheme.black,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: AppTheme.white,
-                border: Border.all(color: AppTheme.black, width: 1.5),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _currentLang,
-                  isExpanded: true,
-                  icon: const Icon(Icons.language, color: AppTheme.black),
-                  items: AppLocalizations.supportedLanguages.map((lang) {
-                    return DropdownMenuItem<String>(
-                      value: lang['code'],
-                      child: Text(
-                        lang['name']!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.black,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (newCode) {
-                    if (newCode != null && newCode != _currentLang) {
-                      setState(() => _currentLang = newCode);
-                      widget.onLanguageChanged(newCode);
-                    }
-                  },
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // District & Regional Monitoring Section
-            const Text(
-              'EARLY WARNING ZONE / DISTRICT',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: AppTheme.black,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Filter localized IMD/CWC hydrometeorological alerts and AI anomaly detections to your regional cluster.',
-              style: TextStyle(fontSize: 12, color: AppTheme.grey600, height: 1.4),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: AppTheme.white,
-                border: Border.all(color: AppTheme.black, width: 1.5),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _districts.any((d) => d['code'] == _selectedDistrict) ? _selectedDistrict : 'Varanasi',
-                  isExpanded: true,
-                  icon: const Icon(Icons.location_city, color: AppTheme.black),
-                  items: _districts.map((item) {
-                    return DropdownMenuItem<String>(
-                      value: item['code'],
-                      child: Text(
-                        item['name']!,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.black,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      _saveDistrict(val);
-                    }
-                  },
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // Server Connection Section
-            const Text(
-              'BACKEND SERVER CONNECTION',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: AppTheme.black,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Configure the Express API URL (e.g. http://10.0.2.2:5000 for Android emulator or your local WiFi IP for physical phones).',
-              style: TextStyle(fontSize: 12, color: AppTheme.grey600, height: 1.4),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _urlController,
-              decoration: InputDecoration(
-                hintText: 'http://10.0.2.2:5000',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: AppTheme.grey400),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: AppTheme.black, width: 1.5),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _saveUrl,
-                child: const Text('SAVE SERVER URL'),
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // Battery Optimization Info
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.grey100,
-                border: Border.all(color: AppTheme.grey300),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 64, 24, 0),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.battery_charging_full_outlined, size: 18, color: AppTheme.black),
-                      const SizedBox(width: 8),
-                      Text(
-                        t.translate('battery_safe_mode'),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Location tracking uses smart distance filters (>500m threshold). It uses minimal battery and will not trigger background battery drain.',
-                    style: TextStyle(fontSize: 11, color: AppTheme.grey700, height: 1.4),
+                  const Icon(Icons.settings_rounded, size: 28, color: AppTheme.textPrimary),
+                  const SizedBox(width: 12),
+                  Text(
+                    t.translate('nav_settings'),
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 24),
 
-            const SizedBox(height: 28),
-
-            // RakshaSetu Brand & Zero-Cost Infrastructure Statement
-            Center(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      'assets/RaksaSetu.png',
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.cover,
+                  // Language Selection
+                  _buildSectionLabel(t.translate('lang_select')),
+                  const SizedBox(height: 10),
+                  SectionCard(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _currentLang,
+                        isExpanded: true,
+                        icon: const Icon(Icons.language_rounded, color: AppTheme.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
+                        items: AppLocalizations.supportedLanguages.map((lang) {
+                          return DropdownMenuItem<String>(
+                            value: lang['code'],
+                            child: Text(lang['name']!),
+                          );
+                        }).toList(),
+                        onChanged: (newCode) {
+                          if (newCode != null && newCode != _currentLang) {
+                            setState(() => _currentLang = newCode);
+                            widget.onLanguageChanged(newCode);
+                          }
+                        },
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+
+                  const SizedBox(height: 24),
+
+                  // District Selection
+                  _buildSectionLabel('EARLY WARNING ZONE / DISTRICT'),
+                  const SizedBox(height: 6),
                   const Text(
-                    'RakshaSetu • रक्षा सेतु',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                      color: AppTheme.black,
+                    'Filter localized IMD/CWC hydrometeorological alerts and AI anomaly detections to your regional cluster.',
+                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                  ),
+                  const SizedBox(height: 10),
+                  SectionCard(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _districts.any((d) => d['code'] == _selectedDistrict) ? _selectedDistrict : 'Varanasi',
+                        isExpanded: true,
+                        icon: const Icon(Icons.location_city_rounded, color: AppTheme.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
+                        items: _districts.map((item) {
+                          return DropdownMenuItem<String>(
+                            value: item['code'],
+                            child: Text(item['name']!),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            _saveDistrict(val);
+                          }
+                        },
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+
+                  const SizedBox(height: 24),
+
+                  // Backend Server Connection
+                  _buildSectionLabel('BACKEND SERVER CONNECTION'),
+                  const SizedBox(height: 6),
                   const Text(
-                    'India AI Disaster Early Warning & Management Platform\nPowered by OpenStreetMap, GloFAS & NDMA Guidelines',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 11, color: AppTheme.grey600, height: 1.4),
+                    'Configure the Express API URL (e.g. http://10.0.2.2:5000 for Android emulator or your local WiFi IP for physical phones).',
+                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                  ),
+                  const SizedBox(height: 10),
+                  SectionCard(
+                    child: TextField(
+                      controller: _urlController,
+                      style: const TextStyle(fontSize: 15, color: AppTheme.textPrimary),
+                      decoration: const InputDecoration(
+                        hintText: 'http://10.0.2.2:5000',
+                        hintStyle: TextStyle(color: AppTheme.textSecondary),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.inkNavy,
+                        foregroundColor: AppTheme.surface,
+                        elevation: 0,
+                        minimumSize: const Size(0, AppTheme.buttonHeight),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                      ),
+                      onPressed: _saveUrl,
+                      child: const Text(
+                        'SAVE SERVER URL',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Battery Optimization Info
+                  SectionCard(
+                    backgroundColor: AppTheme.background,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppTheme.surface,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.battery_charging_full_outlined, size: 22, color: AppTheme.safeGreen),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                t.translate('battery_safe_mode'),
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Location tracking uses smart distance filters (>500m threshold). It uses minimal battery and will not trigger background battery drain.',
+                                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // RakshaSetu Brand & Zero-Cost Infrastructure Statement
+                  Center(
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            'assets/RaksaSetu.png',
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'RakshaSetu • रक्षा सेतु',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'India AI Disaster Early Warning & Management Platform\nPowered by OpenStreetMap, GloFAS & NDMA Guidelines',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary.withValues(alpha: 0.8),
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String text) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.5,
+        color: AppTheme.textSecondary,
       ),
     );
   }

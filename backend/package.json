@@ -5,8 +5,8 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "jest --runInBand --forceExit"
+    "dev": "node ./node_modules/nodemon/bin/nodemon.js src/server.js",
+    "test": "node ./node_modules/jest/bin/jest.js --runInBand --forceExit"
   },
   "dependencies": {
     "@turf/boolean-point-in-polygon": "^7.4.0",
