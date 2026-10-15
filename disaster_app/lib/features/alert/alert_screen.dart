@@ -31,6 +31,19 @@ class _AlertScreenState extends State<AlertScreen> {
   String? _checkInStatus;
   bool _isSubmittingCheckIn = false;
 
+  double? get _distanceKm {
+    final coords = _activeAlert?.centreCoords;
+    if (coords != null && coords.length >= 2) {
+      return LocationService().calculateDistanceKm(
+        _userLat,
+        _userLng,
+        coords[1],
+        coords[0],
+      );
+    }
+    return null;
+  }
+
   Future<void> _handleCheckIn(String status) async {
     setState(() => _isSubmittingCheckIn = true);
     final ok = await ApiService().submitCitizenCheckIn(

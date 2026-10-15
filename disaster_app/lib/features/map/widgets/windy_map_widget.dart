@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'windy_map_mobile.dart'
+    if (dart.library.js_interop) 'windy_map_web.dart' as platform_view;
 
 class WindyMapWidget extends StatefulWidget {
   final double initialLat;
@@ -19,7 +19,6 @@ class WindyMapWidget extends StatefulWidget {
 }
 
 class _WindyMapWidgetState extends State<WindyMapWidget> {
-  late final WebViewController _controller;
   bool _isLoading = true;
   String _currentOverlay = 'radar';
 
@@ -38,7 +37,6 @@ class _WindyMapWidgetState extends State<WindyMapWidget> {
   void initState() {
     super.initState();
     _currentOverlay = widget.activeOverlay;
-    _initWebView();
   }
 
   String _buildWindyUrl(String overlay) {
@@ -53,57 +51,31 @@ class _WindyMapWidgetState extends State<WindyMapWidget> {
         '&key=$windyApiKey';
   }
 
-  void _initWebView() {
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF0F172A))
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (_) {
-            if (mounted) setState(() => _isLoading = true);
-          },
-          onPageFinished: (_) {
-            if (mounted) setState(() => _isLoading = false);
-          },
-          onWebResourceError: (error) {
-            debugPrint('[WindyWebView] Error: ${error.description}');
-            if (mounted) setState(() => _isLoading = false);
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(_buildWindyUrl(_currentOverlay)));
-  }
-
   void _switchOverlay(String overlayId) {
     setState(() {
       _currentOverlay = overlayId;
       _isLoading = true;
     });
-    _controller.loadRequest(Uri.parse(_buildWindyUrl(overlayId)));
-  }
-
-  Future<void> _openExternalWindy() async {
-    final url = Uri.parse(
-      'https://www.windy.com/?${widget.initialLat},${widget.initialLng},10',
-    );
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // 1. Interactive WebView
+        // 1. Embedded Interactive Live Windy Map (runs inside the app only)
         Positioned.fill(
-          child: WebViewWidget(controller: _controller),
+          child: platform_view.createWindyPlatformView(
+            url: _buildWindyUrl(_currentOverlay),
+            onLoaded: () {
+              if (mounted) setState(() => _isLoading = false);
+            },
+          ),
         ),
 
         // 2. Loading overlay
         if (_isLoading)
           Container(
-            color: const Color(0xFF0B1120).withAlpha(200),
+            color: const Color(0xFF0B1120).withAlpha(180),
             child: const Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -164,16 +136,6 @@ class _WindyMapWidgetState extends State<WindyMapWidget> {
                     ),
                   );
                 }),
-                // External App button
-                IconButton(
-                  onPressed: _openExternalWindy,
-                  icon: const Icon(Icons.open_in_new_rounded,
-                      color: Colors.white70, size: 20),
-                  tooltip: 'Open in Windy App / Browser',
-                  style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E293B).withAlpha(220),
-                  ),
-                ),
               ],
             ),
           ),

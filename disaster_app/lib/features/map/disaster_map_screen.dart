@@ -235,7 +235,7 @@ class _DisasterMapScreenState extends State<DisasterMapScreen> {
                   children: [
                     // CartoDB Dark Matter tile layer for Windy dark aesthetic
                     TileLayer(
-                      urlTemplate: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
+                      urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
                       subdomains: const ['a', 'b', 'c', 'd'],
                       userAgentPackageName: 'com.indiasafety.disaster',
                     ),

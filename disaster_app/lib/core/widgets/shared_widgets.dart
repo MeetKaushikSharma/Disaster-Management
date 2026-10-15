@@ -42,10 +42,7 @@ class GradientHeader extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (leading != null) ...[
-                    leading!,
-                    const SizedBox(width: 10),
-                  ],
+                  if (leading != null) ...[leading!, const SizedBox(width: 10)],
                   Text(
                     title,
                     style: const TextStyle(
@@ -210,24 +207,27 @@ class PillButton extends StatelessWidget {
         : AppTheme.textPrimary;
 
     return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: bg,
-        foregroundColor: fg,
-        elevation: 0,
-        minimumSize: const Size(0, AppTheme.buttonHeight),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: style == PillButtonStyle.black
-              ? const BorderSide(color: Colors.white24)
-              : BorderSide.none,
-        ),
-      ).copyWith(
-        backgroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.disabled)) return bg.withValues(alpha: 0.5);
-          return bg;
-        }),
-      ),
+      style:
+          ElevatedButton.styleFrom(
+            backgroundColor: bg,
+            foregroundColor: fg,
+            elevation: 0,
+            minimumSize: const Size(0, AppTheme.buttonHeight),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: style == PillButtonStyle.black
+                  ? const BorderSide(color: Colors.white24)
+                  : BorderSide.none,
+            ),
+          ).copyWith(
+            backgroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.disabled)) {
+                return bg.withValues(alpha: 0.5);
+              }
+              return bg;
+            }),
+          ),
       icon: Icon(icon, size: 18, color: fg),
       label: Flexible(
         child: Text(
