@@ -141,28 +141,6 @@ class _WindyMapWidgetState extends State<WindyMapWidget> {
           ),
         ),
 
-        // 4. Attribution chip (Bottom-left)
-        Positioned(
-          bottom: 12,
-          left: 12,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withAlpha(200),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: Colors.white12),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '🛰️ Windy Live Radar Engine',
-                  style: TextStyle(color: Colors.white70, fontSize: 10),
-                ),
-              ],
-            ),
-          ),
-        ),
       ],
     );
   }

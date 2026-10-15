@@ -147,58 +147,91 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
     ];
 
+    final isDarkScreen = _currentIndex == 1;
+    final navBg = isDarkScreen ? const Color(0xFF1E293B) : AppTheme.surface;
+    final navBorder = isDarkScreen
+        ? Border.all(color: Colors.white24, width: 1)
+        : null;
+
     return Scaffold(
-      extendBody: true, // Needed for floating nav
+      extendBody: false, // Prevents bottom bar from overlapping body content
+      backgroundColor: isDarkScreen
+          ? const Color(0xFF0F172A)
+          : AppTheme.background,
       body: IndexedStack(index: _currentIndex, children: pages),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: AppTheme.softShadow,
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 9),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildNavItem(
-                  0,
-                  'Alerts',
-                  Icons.notifications_none,
-                  Icons.notifications,
-                  t.translate('nav_alerts'),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          color: isDarkScreen
+              ? const Color(0xFF0F172A)
+              : AppTheme.background,
+          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12, top: 4),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 580),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: navBg,
+                  borderRadius: BorderRadius.circular(24),
+                  border: navBorder,
+                  boxShadow: AppTheme.softShadow,
                 ),
-                _buildNavItem(
-                  1,
-                  'Live Map',
-                  Icons.location_on_outlined,
-                  Icons.location_on,
-                  t.translate('nav_map'),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildNavItem(
+                        0,
+                        'Alerts',
+                        Icons.notifications_none,
+                        Icons.notifications,
+                        t.translate('nav_alerts'),
+                        isDarkScreen,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildNavItem(
+                        1,
+                        'Live Map',
+                        Icons.location_on_outlined,
+                        Icons.location_on,
+                        t.translate('nav_map'),
+                        isDarkScreen,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildNavItem(
+                        2,
+                        'Guides',
+                        Icons.menu_book_outlined,
+                        Icons.menu_book,
+                        t.translate('nav_guides'),
+                        isDarkScreen,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildNavItem(
+                        3,
+                        'SOS',
+                        Icons.phone_in_talk_outlined,
+                        Icons.phone_in_talk,
+                        t.translate('nav_sos'),
+                        isDarkScreen,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildNavItem(
+                        4,
+                        'Settings',
+                        Icons.settings_outlined,
+                        Icons.settings,
+                        t.translate('nav_settings'),
+                        isDarkScreen,
+                      ),
+                    ),
+                  ],
                 ),
-                _buildNavItem(
-                  2,
-                  'Safety Guides',
-                  Icons.menu_book_outlined,
-                  Icons.menu_book,
-                  t.translate('nav_guides'),
-                ),
-                _buildNavItem(
-                  3,
-                  'Emergency',
-                  Icons.phone_in_talk_outlined,
-                  Icons.phone_in_talk,
-                  t.translate('nav_sos'),
-                ),
-                _buildNavItem(
-                  4,
-                  'Settings',
-                  Icons.settings_outlined,
-                  Icons.settings,
-                  t.translate('nav_settings'),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -212,47 +245,50 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     IconData icon,
     IconData activeIcon,
     String label,
+    bool isDarkScreen,
   ) {
     final isSelected = _currentIndex == index;
-    // For specific lucide icons we will integrate later. For now, use material outline/filled as placeholder
+    final activeItemBg = isDarkScreen
+        ? Colors.amber.withValues(alpha: 0.22)
+        : AppTheme.deepBlue;
+    final activeIconColor = isDarkScreen ? Colors.amberAccent : Colors.white;
+    final inactiveIconColor = isDarkScreen ? Colors.white60 : AppTheme.textSecondary;
+    final activeTextColor = isDarkScreen ? Colors.amberAccent : AppTheme.textPrimary;
+    final inactiveTextColor = isDarkScreen ? Colors.white60 : AppTheme.textSecondary;
+
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 64, // fixed tap target
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              height: 34,
-              width: 48,
-              decoration: BoxDecoration(
-                color: isSelected ? AppTheme.deepBlue : Colors.transparent,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Icon(
-                isSelected ? activeIcon : icon,
-                color: isSelected ? Colors.white : AppTheme.textSecondary,
-                size: 21,
-              ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            height: 32,
+            width: 48,
+            decoration: BoxDecoration(
+              color: isSelected ? activeItemBg : Colors.transparent,
+              borderRadius: BorderRadius.circular(15),
             ),
-            const SizedBox(height: 4),
-            Text(
-              label.isEmpty ? fallbackLabel : label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected
-                    ? AppTheme.textPrimary
-                    : AppTheme.textSecondary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected ? activeIconColor : inactiveIconColor,
+              size: 20,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label.isEmpty ? fallbackLabel : label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              color: isSelected ? activeTextColor : inactiveTextColor,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
