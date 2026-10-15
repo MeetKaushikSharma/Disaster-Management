@@ -166,7 +166,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               ? const Color(0xFF0F172A)
               : AppTheme.background,
           padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12, top: 4),
-          child: Center(
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            heightFactor: 1.0,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 580),
               child: Container(
