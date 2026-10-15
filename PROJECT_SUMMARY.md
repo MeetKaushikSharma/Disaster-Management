@@ -104,7 +104,8 @@ flowchart TD
 ### 5. Interactive Visual Portals
 - **Windy Live Radar & Heatmap Portal (`admin-web/src/pages/HeatMapPage.tsx`)**:
   - Features real-time particle animation powered by the **Windy Map Forecast API**.
-  - Includes a layer switcher for **Wind Speed**, **Rainfall Radar**, **Temperature**, **River Dynamics**, and **Disaster Risk**.
+  - Includes primary controls for **Wind Speed**, **Rainfall**, **Temperature**, **River / Waves**, and **Disaster Risk**, plus a searchable **More Weather & Disaster Layers** browser with recommended layers and collapsible categories.
+  - The layer browser uses Windy's supported overlay identifiers for wet-bulb temperature, precipitation type, warnings, extreme forecast, fire danger, drought, new snow, snow depth, tidal currents, air quality index, and pollutant layers. The separate Thunderstorms layer, hurricane tracking, avalanche danger, and wave power are shown as unavailable because the current Windy embed does not expose them as selectable overlays.
   - Features a **Dual-Engine Toggle** allowing operators to switch between global satellite particle radar and high-density local AI sensor grid heatmaps.
   - Includes a **Time-Slider** (+1h, +3h, +6h) that visualizes the AI model's projected storm evolution.
 - **Streamlit GIS Presentation Dashboard (`dashboard/app.py`)**:
