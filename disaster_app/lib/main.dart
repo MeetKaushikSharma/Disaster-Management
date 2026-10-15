@@ -283,7 +283,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             label.isEmpty ? fallbackLabel : label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 10,
+              letterSpacing: -0.2,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               color: isSelected ? activeTextColor : inactiveTextColor,
             ),
